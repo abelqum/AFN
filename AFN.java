@@ -312,14 +312,55 @@ return r;
 
 /*
 hashset<estado> IrA(hashset<estado> A, char c){
-return cerraduraEpsilon(Mover(A,c);
+return cerraduraEpsilon(Mover(A,c));
 }
 */
 
 
+/*
+AFD ConvertiraAFD(){
+
+hashset<sj> r= new hashset<sj>();
+queue<sj> Q= new hashset<sj>();
+sj C= new sj;
+int numSJ=0;
+sj stTem= new sj();
+int i;
+c.conjEstados=cerraduraEpsilon(this.edoInicial);
+c.j=numSj++;
+r.add(c);
+q.add(c);
+while("Q.count()!=0"){
+c=Q.Dropqueue();
+foreach(char a in this.alfabeto){
+    sjTemp.conjEstados= IrA(c.conjEstados,a);
+    i= r.ContieneA(sjTemp);
+    if(i!=-1){
+    c.arregloTrans[a]=i;
+    }else{
+    sjtemp.j=numSj++;
+    c.arregloTrans[a]=sjTemp.j;
+    r.add(sjTemp);
+    q.add(sjTemp);
+    }
+}
+
+poer la informacion en la instancia del afd (arreglo bidimensional, valor de n=)
+guardar en una rchivo el afd
+}
 
 
 
+
+
+}
+*/
+
+/*
+clase afd
+int n
+arreglo bidimensional de enteros
+*/
 
 
 
