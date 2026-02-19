@@ -225,6 +225,109 @@ public void imprimirGrafo() {
 
 
 
+//convertir de afn a afd
+
+//cerradura epsilon para un estado
+/*
+
+hashset<estado>CerraduraEpsilon(Estado e){
+estado e;
+hashset<Estado> c= new hashset<Estado>();
+Pila<Estado>p=new Pila<Estado>();
+c.clear();
+p.clear();
+p.push(e);
+
+while (p.count()!=0){
+    e=p.pop();
+    c.add(e);
+    foreach(Transicion t in e.trancisiones){
+    if(t.simbolo==epsilon){
+        if(!c.contain(t.edofinal))
+            p.push(t.edofinal;
+    }
+  }
+}
+return c;
+}
+*/
+
+
+
+//cerradura epsilon para un conjunto de estados
+/*
+
+hashset<estado>CerraduraEpsilon(hashset<estado> r){
+estado e;
+hashset<Estado> c= new hashset<Estado>();
+Pila<Estado>p=new Pila<Estado>();
+c.clear();
+p.clear();
+
+foreach(estado e in r)
+p.push(e);
+
+while (p.count()!=0){
+    e=p.pop();
+    r.add(e);
+    foreach(Transicion t in e.trancisiones){
+    if(t.simbolo==epsilon){
+        if(!r.contain(t.edofinal))
+            p.push(t.edofinal;
+    }
+  }
+}
+return r;
+}
+*/
+
+
+
+
+/*
+hashset<estado>Mover(estado e, char c){
+hashset <estado> r= new hashset<estado>();
+r.clear();
+foreach(transicion t in e.trancisiones)
+    r.union(tieneTransicionA(c));
+
+return r;
+}
+*/
+
+/*
+hashset<estado>Mover(hashset<estado> A, char c){
+hashset <estado> r= new hashset<estado>();
+r.clear();
+foreach(estado e in A){
+    foreach(transicion t in e.trancisiones)
+        r.union(tieneTransicionA(c));
+}
+return r;
+}
+*/
+
+
+
+
+/*
+hashset<estado> IrA(hashset<estado> A, char c){
+return cerraduraEpsilon(Mover(A,c);
+}
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 public void generarGrafico(String nombreArchivo) {
