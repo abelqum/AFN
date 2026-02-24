@@ -320,7 +320,39 @@ public class AFN {
 
         return afdGenerado;
     }
+// =======================================================
+    // NUEVO: UNIÓN ESPECIAL PARA ANÁLISIS LÉXICO
+    // =======================================================
+    public AFN unionEspecialParaLexico(java.util.ArrayList<AFN> afns, java.util.ArrayList<Integer> tokens, int idNuevoAfn) {
+        Estado eNuevoInicio = new Estado(); 
+        this.estadoInicial = eNuevoInicio;
+        this.estadosAFN.add(eNuevoInicio);
+        this.idAFN = idNuevoAfn;
 
+        for (int i = 0; i < afns.size(); i++) {
+            AFN afnActual = afns.get(i);
+            int tokenAsignado = tokens.get(i);
+
+            // 1. Conectar el nuevo inicio general al inicio de este AFN
+            eNuevoInicio.transiciones.add(new Transicion(EPSILON, afnActual.estadoInicial));
+
+            // 2. Asignar el Token SOLAMENTE a los estados de aceptación de este AFN
+            for(Estado eAcept : afnActual.estadosAcept) {
+                eAcept.token = tokenAsignado;
+                this.estadosAcept.add(eAcept); // Se mantienen como estados de aceptación
+            }
+
+            // 3. Absorber todos los estados y el alfabeto
+            this.estadosAFN.addAll(afnActual.estadosAFN);
+            this.alfabeto.addAll(afnActual.alfabeto);
+            
+            // 4. Eliminar el AFN original de la memoria global
+            AFN.coleccionAFN.remove(afnActual);
+        }
+        
+        AFN.coleccionAFN.add(this);
+        return this;
+    }
     // --- GRÁFICOS Y UTILIDADES ---
 
     public void generarGrafico(String nombreArchivo) {
@@ -346,7 +378,7 @@ public class AFN {
 
     for (Estado e : estadosAFN) {
         if (e.edoAccept) {
-            dot.append("  " + e.idEdo + " [shape = doublecircle, label=\"" + e.idEdo + "\"];\n");
+           dot.append("  " + e.idEdo + " [shape = doublecircle, label=\"" + e.idEdo + (e.token != -1 ? "\\nTk:" + e.token : "") + "\"];\n");
         } else {
             dot.append("  " + e.idEdo + " [shape = circle, label=\"" + e.idEdo + "\"];\n");
         }
