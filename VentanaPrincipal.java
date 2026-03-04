@@ -58,9 +58,8 @@ public class VentanaPrincipal extends JFrame {
         JMenuItem itemOpcional = new JMenuItem("Opcional");
         JMenuItem itemConvertir = new JMenuItem("Convertir AFN a AFD");
         
-        // --- NUEVA OPCIÓN: PROBAR LÉXICO ---
         JMenuItem itemProbarLexico = new JMenuItem("Probar Analizador Léxico");
-        itemProbarLexico.setForeground(new Color(0, 102, 204)); // Azulito para que resalte
+        itemProbarLexico.setForeground(new Color(0, 102, 204)); 
         
         JMenuItem itemBorrar = new JMenuItem("Borrar AFN...");
         itemBorrar.setForeground(Color.RED);
@@ -77,7 +76,7 @@ public class VentanaPrincipal extends JFrame {
         menuOperaciones.addSeparator();
         menuOperaciones.add(itemConvertir);
         menuOperaciones.addSeparator();
-        menuOperaciones.add(itemProbarLexico); // <-- Agregado al menú
+        menuOperaciones.add(itemProbarLexico); 
         menuOperaciones.addSeparator();
         menuOperaciones.add(itemBorrar);
 
@@ -116,10 +115,7 @@ public class VentanaPrincipal extends JFrame {
         contenedorTarjetas.add(crearPanelOperacionBinariaSimple("Concatenación", "Concatenar:", comboConcat1, comboConcat2, lblImagenConcat, false), "Concatenar");
         
         contenedorTarjetas.add(crearPanelConvertir(), "Convertir");
-        
-        // --- NUEVA VISTA AL CONTENEDOR ---
         contenedorTarjetas.add(crearPanelProbarLexico(), "ProbarLexico");
-        
         contenedorTarjetas.add(new JPanel(), "Vacio"); 
         
         panelAFN.add(contenedorTarjetas, BorderLayout.CENTER);
@@ -135,12 +131,12 @@ public class VentanaPrincipal extends JFrame {
         itemUnirNormal.addActionListener(e -> { actualizarListas(); cardLayout.show(contenedorTarjetas, "UnionNormal"); });
         itemConcatenar.addActionListener(e -> { actualizarListas(); cardLayout.show(contenedorTarjetas, "Concatenar"); });
         itemConvertir.addActionListener(e -> { actualizarListas(); cardLayout.show(contenedorTarjetas, "Convertir"); });
-        itemProbarLexico.addActionListener(e -> cardLayout.show(contenedorTarjetas, "ProbarLexico")); // Mostrar panel
+        itemProbarLexico.addActionListener(e -> cardLayout.show(contenedorTarjetas, "ProbarLexico"));
         itemBorrar.addActionListener(e -> mostrarDialogoBorrar());
     }
 
     // =======================================================
-    // NUEVO: PANEL DE PRUEBA DEL ANALIZADOR LÉXICO
+    // PANEL DE PRUEBA DEL ANALIZADOR LÉXICO (CORREGIDO Y CON TOKEN 0)
     // =======================================================
     private JPanel crearPanelProbarLexico() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
@@ -155,7 +151,7 @@ public class VentanaPrincipal extends JFrame {
         panelNorte.add(btnCargar);
         panelNorte.add(lblArchivo);
 
-        // Centro: Área de texto para el código a analizar
+        // Centro: Área de texto para el código
         JPanel panelCentro = new JPanel(new BorderLayout(5, 5));
         JLabel lblInstruccion = new JLabel("Ingrese la cadena o código fuente a analizar:");
         lblInstruccion.setFont(new Font("Arial", Font.BOLD, 14));
@@ -172,11 +168,11 @@ public class VentanaPrincipal extends JFrame {
         btnAnalizar.setForeground(Color.WHITE);
         panelCentro.add(btnAnalizar, BorderLayout.SOUTH);
 
-        // Sur: Tabla para mostrar los Tokens y Lexemas encontrados
+        // Sur: Tabla para mostrar los Tokens y Lexemas
         String[] columnas = {"Token Encontrado", "Lexema"};
         DefaultTableModel modeloResultados = new DefaultTableModel(columnas, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) { return false; } // Tabla de solo lectura
+            public boolean isCellEditable(int row, int column) { return false; } 
         };
         JTable tablaResultados = new JTable(modeloResultados);
         tablaResultados.setRowHeight(25);
@@ -190,49 +186,64 @@ public class VentanaPrincipal extends JFrame {
         panel.add(panelNorte, BorderLayout.NORTH);
         panel.add(splitVertical, BorderLayout.CENTER);
 
-        // --- LÓGICA DE LOS BOTONES ---
+        // Lógica de archivo y análisis
         final String[] rutaArchivo = {""};
 
         btnCargar.addActionListener(e -> {
-            // Se abre directo en la carpeta donde guardamos los txt
-            JFileChooser chooser = new JFileChooser(new File("tablas_afd").getAbsolutePath());
-            chooser.setDialogTitle("Seleccionar Tabla de AFD generada");
-            int seleccion = chooser.showOpenDialog(panel);
+            // Validación para evitar errores si la carpeta aún no existe
+            File rutaDefecto = new File("tablas_afd");
+            if (!rutaDefecto.exists()) {
+                rutaDefecto = new File(System.getProperty("user.dir")); // Va a la carpeta del proyecto si no existe tablas_afd
+            }
+            
+            // Pasamos VentanaPrincipal.this para que la ventana de elegir archivo no se esconda
+            JFileChooser chooser = new JFileChooser(rutaDefecto.getAbsolutePath());
+            chooser.setDialogTitle("Seleccionar Tabla de AFD generada (.txt)");
+            
+            int seleccion = chooser.showOpenDialog(VentanaPrincipal.this);
             if (seleccion == JFileChooser.APPROVE_OPTION) {
                 File archivo = chooser.getSelectedFile();
                 rutaArchivo[0] = archivo.getAbsolutePath();
                 lblArchivo.setText("Cargado: " + archivo.getName());
-                lblArchivo.setForeground(new Color(0, 153, 0)); // Letras verdes
+                lblArchivo.setForeground(new Color(0, 153, 0)); 
                 lblArchivo.setFont(new Font("Arial", Font.BOLD, 12));
             }
         });
 
         btnAnalizar.addActionListener(e -> {
             if (rutaArchivo[0].isEmpty()) {
-                JOptionPane.showMessageDialog(panel, "Debe cargar un archivo Tabla_AFD_X.txt primero.", "Archivo faltante", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(VentanaPrincipal.this, "Debe cargar un archivo Tabla_AFD_X.txt primero usando el botón superior.", "Archivo faltante", JOptionPane.WARNING_MESSAGE);
                 return;
             }
             if (txtCodigo.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(panel, "La cadena a analizar está vacía.", "Sin texto", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(VentanaPrincipal.this, "La cadena a analizar está vacía.", "Sin texto", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
-            modeloResultados.setRowCount(0); // Limpiar tabla de resultados anteriores
+            modeloResultados.setRowCount(0); // Limpiar tabla de resultados
             
             try {
                 AnalizadorLexico lexico = new AnalizadorLexico(rutaArchivo[0]);
                 lexico.setSigma(txtCodigo.getText());
                 
                 int tokenHallado;
-                while ((tokenHallado = lexico.yylex()) != AnalizadorLexico.TOKEN_FIN) {
-                    if (tokenHallado == AnalizadorLexico.TOKEN_ERROR) {
+                
+                // CICLO PARA IMPRIMIR HASTA LLEGAR AL FIN (INCLUYENDO EL 0)
+                while (true) {
+                    tokenHallado = lexico.yylex();
+                    
+                    if (tokenHallado == AnalizadorLexico.TOKEN_FIN) {
+                        modeloResultados.addRow(new Object[]{"0", " "}); 
+                        break; // Se detiene después de imprimir el 0
+                    } else if (tokenHallado == AnalizadorLexico.TOKEN_ERROR) {
                         modeloResultados.addRow(new Object[]{"ERROR LÉXICO", lexico.getLexema()});
                     } else {
                         modeloResultados.addRow(new Object[]{String.valueOf(tokenHallado), lexico.getLexema()});
                     }
                 }
+                
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(panel, "Hubo un problema al analizar: " + ex.getMessage(), "Error Interno", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(VentanaPrincipal.this, "Hubo un problema al leer el archivo. ¿Seguro que es un archivo .txt de AFD válido?\n" + ex.getMessage(), "Error Interno", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -303,9 +314,6 @@ public class VentanaPrincipal extends JFrame {
     // =======================================================
     // PANEL BÁSICO (UN SOLO CARÁCTER)
     // =======================================================
-  // =======================================================
-    // PANEL BÁSICO (UN SOLO CARÁCTER) - CORREGIDO
-    // =======================================================
     private JPanel crearPanelBasicoUnCaracter() {
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         splitPane.setDividerLocation(300);
@@ -347,13 +355,8 @@ public class VentanaPrincipal extends JFrame {
                 if (checkAscii.isSelected()) { 
                     c = (char) Integer.parseInt(txtCaracter.getText().trim()); 
                 } else { 
-                    // === NUEVA LÓGICA INTELIGENTE DE CARACTERES ===
                     String input = txtCaracter.getText();
-                    if (input.trim().isEmpty()) {
-                        c = ' '; // Si escribieron puros espacios, asumimos que quería un espacio
-                    } else {
-                        c = input.trim().charAt(0); // Quita espacios accidentales a los lados y toma la letra/signo
-                    }
+                    if (input.trim().isEmpty()) { c = ' '; } else { c = input.trim().charAt(0); }
                 }
 
                 nuevoAfn.crearAFNBasico(c);
@@ -377,7 +380,7 @@ public class VentanaPrincipal extends JFrame {
     }
 
     // =======================================================
-    // PANEL BÁSICO (RANGO DE CARACTERES) - CORREGIDO
+    // PANEL BÁSICO (RANGO DE CARACTERES)
     // =======================================================
     private JPanel crearPanelBasicoRango() {
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
@@ -421,7 +424,6 @@ public class VentanaPrincipal extends JFrame {
                     cInf = (char) Integer.parseInt(txtInferior.getText().trim()); 
                     cSup = (char) Integer.parseInt(txtSuperior.getText().trim()); 
                 } else { 
-                    // === NUEVA LÓGICA INTELIGENTE DE CARACTERES ===
                     String inputInf = txtInferior.getText();
                     String inputSup = txtSuperior.getText();
                     
