@@ -42,7 +42,7 @@ public class VentanaPrincipal extends JFrame {
         panelVacio = new JPanel(new BorderLayout());
         panelVacio.add(new JLabel("Próximamente...", SwingConstants.CENTER), BorderLayout.CENTER);
 
-        pestañas.addTab("Compilador", panelAFN); // Le cambiamos el nombre a la pestaña principal
+        pestañas.addTab("Compilador", panelAFN); 
         pestañas.addTab("Acerca de", panelVacio);
 
         JMenuBar menuBar = new JMenuBar();
@@ -83,15 +83,14 @@ public class VentanaPrincipal extends JFrame {
         menuOperaciones.add(itemBorrar);
 
         // ==========================================
-        // MENÚ 2: ANALIZADOR SINTÁCTICO (NUEVO)
+        // MENÚ 2: ANALIZADOR SINTÁCTICO
         // ==========================================
         JMenu menuSintactico = new JMenu("Analizador Sintáctico");
         JMenuItem itemDescenso = new JMenuItem("Descenso Recursivo (Calculadora)");
-        itemDescenso.setForeground(new Color(0, 153, 76)); // Color verde oscuro para distinguirlo
+        itemDescenso.setForeground(new Color(0, 153, 76)); 
         
         menuSintactico.add(itemDescenso);
 
-        // Agregamos los menús a la barra
         menuBar.add(menuOperaciones);
         menuBar.add(menuSintactico);
         panelAFN.add(menuBar, BorderLayout.NORTH);
@@ -129,8 +128,6 @@ public class VentanaPrincipal extends JFrame {
         
         contenedorTarjetas.add(crearPanelConvertir(), "Convertir");
         contenedorTarjetas.add(crearPanelProbarLexico(), "ProbarLexico");
-        
-        // --- AÑADIENDO LA NUEVA VISTA DEL SINTÁCTICO ---
         contenedorTarjetas.add(crearPanelDescensoRecursivo(), "DescensoRecursivo");
         
         contenedorTarjetas.add(new JPanel(), "Vacio"); 
@@ -156,7 +153,7 @@ public class VentanaPrincipal extends JFrame {
     }
 
     // =======================================================
-    // NUEVO: PANEL DE DESCENSO RECURSIVO (CALCULADORA)
+    // PANEL DE DESCENSO RECURSIVO (ACTUALIZADO CON DISEÑO VISUAL)
     // =======================================================
     private JPanel crearPanelDescensoRecursivo() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
@@ -185,11 +182,12 @@ public class VentanaPrincipal extends JFrame {
         
         JButton btnEvaluar = new JButton("Evaluar Sintácticamente");
         btnEvaluar.setFont(new Font("Arial", Font.BOLD, 16));
-        btnEvaluar.setBackground(new Color(0, 153, 76)); // Color Verde
+        btnEvaluar.setBackground(new Color(0, 153, 76)); 
         btnEvaluar.setForeground(Color.WHITE);
 
-        JLabel lblResultado = new JLabel("Esperando expresión...");
-        lblResultado.setFont(new Font("Arial", Font.BOLD, 16));
+        // Etiqueta de resultado que soporta HTML para múltiples líneas
+        JLabel lblResultado = new JLabel("<html>Esperando expresión...</html>");
+        lblResultado.setFont(new Font("Arial", Font.PLAIN, 16));
         lblResultado.setForeground(Color.BLUE);
 
         gbc.gridx = 0; gbc.gridy = 0; panelCentro.add(lblInstruccion, gbc);
@@ -197,7 +195,6 @@ public class VentanaPrincipal extends JFrame {
         gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 2; panelCentro.add(btnEvaluar, gbc);
         gbc.gridy = 2; panelCentro.add(lblResultado, gbc);
 
-        // Añadimos una nota de ayuda abajo
         JLabel lblAyuda = new JLabel("<html><b>Aviso:</b> Para que esto funcione, el AFD cargado debe usar los siguientes Tokens:<br>"
                 + "+ (10), - (20), * (30), / (40), ( (50), ) (60), NUM (70), Espacios (20001)</html>");
         lblAyuda.setForeground(Color.DARK_GRAY);
@@ -235,14 +232,16 @@ public class VentanaPrincipal extends JFrame {
             }
 
             try {
-                // Instanciamos la clase que creaste anteriormente
                 EvaluadorExpr evaluador = new EvaluadorExpr(txtExpresion.getText(), rutaArchivo[0]);
-                
-                // Disparamos la evaluación sintáctica
                 boolean sintaxisCorrecta = evaluador.iniEval();
 
                 if (sintaxisCorrecta) {
-                    lblResultado.setText("Resultado: " + evaluador.result);
+                    // Actualizamos la etiqueta con formato HTML para que se vea ordenado y bonito
+                    lblResultado.setText("<html>"
+                            + "<b>Resultado Matemático:</b> <font color='blue'>" + evaluador.result + "</font><br><br>"
+                            + "<b>Notación Postfija:</b> <font color='gray'>" + evaluador.exprPost + "</font><br><br>"
+                            + "<b><font color='green'>► ¡Evaluación Sintáctica Correcta!</font></b>"
+                            + "</html>");
                     
                     JOptionPane.showMessageDialog(VentanaPrincipal.this, 
                         "¡El Análisis Sintáctico fue Exitoso!\n\n"
@@ -251,7 +250,7 @@ public class VentanaPrincipal extends JFrame {
                         + "► Resultado Matemático: " + evaluador.result, 
                         "Evaluación Correcta", JOptionPane.INFORMATION_MESSAGE);
                 } else {
-                    lblResultado.setText("Resultado: ERROR SINTÁCTICO");
+                    lblResultado.setText("<html><b><font color='red'>► ERROR SINTÁCTICO</font></b><br>Revise la estructura de la expresión.</html>");
                     
                     JOptionPane.showMessageDialog(VentanaPrincipal.this, 
                         "Se encontró un Error Sintáctico en la expresión.\n"
@@ -268,7 +267,7 @@ public class VentanaPrincipal extends JFrame {
     }
 
     // =======================================================
-    // PANEL DE PRUEBA DEL ANALIZADOR LÉXICO (CORREGIDO Y CON TOKEN 0)
+    // PANEL DE PRUEBA DEL ANALIZADOR LÉXICO 
     // =======================================================
     private JPanel crearPanelProbarLexico() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
@@ -356,13 +355,12 @@ public class VentanaPrincipal extends JFrame {
                 
                 int tokenHallado;
                 
-                // CICLO PARA IMPRIMIR HASTA LLEGAR AL FIN (INCLUYENDO EL 0)
                 while (true) {
                     tokenHallado = lexico.yylex();
                     
                     if (tokenHallado == AnalizadorLexico.TOKEN_FIN) {
                         modeloResultados.addRow(new Object[]{"0", " "}); 
-                        break; // Se detiene después de imprimir el 0
+                        break;
                     } else if (tokenHallado == AnalizadorLexico.TOKEN_ERROR) {
                         modeloResultados.addRow(new Object[]{"ERROR LÉXICO", lexico.getLexema()});
                     } else {
@@ -823,7 +821,6 @@ public class VentanaPrincipal extends JFrame {
                 new File("dots/AFN_" + a.idAFN + ".dot").delete();
                 actualizarListas();
                 
-                // Limpiar visores
                 lblImagenBasicoUn.setIcon(null); lblImagenBasicoUn.setText("AFN Eliminado");
                 lblImagenBasicoRango.setIcon(null); lblImagenBasicoRango.setText("AFN Eliminado");
                 lblImagenPositiva.setIcon(null); lblImagenPositiva.setText("Selecciona un AFN");
