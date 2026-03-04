@@ -33,7 +33,7 @@ public class VentanaPrincipal extends JFrame {
 
     public VentanaPrincipal() {
         setTitle("Generador de Analizadores Léxicos");
-        setSize(1000, 650); 
+        setSize(1000, 680); 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -48,10 +48,8 @@ public class VentanaPrincipal extends JFrame {
         JMenuBar menuBar = new JMenuBar();
         JMenu menuOperaciones = new JMenu("Operaciones AFN");
 
-        // --- NUEVOS MENÚS BÁSICOS ---
         JMenuItem itemBasicoUn = new JMenuItem("Básico (Un carácter)");
         JMenuItem itemBasicoRango = new JMenuItem("Básico (Rango)");
-        
         JMenuItem itemUnirNormal = new JMenuItem("Unir (Normal)");
         JMenuItem itemUnirLexico = new JMenuItem("Unir (Para Léxico)");
         JMenuItem itemConcatenar = new JMenuItem("Concatenar");
@@ -59,6 +57,11 @@ public class VentanaPrincipal extends JFrame {
         JMenuItem itemKleene = new JMenuItem("Cerradura *");
         JMenuItem itemOpcional = new JMenuItem("Opcional");
         JMenuItem itemConvertir = new JMenuItem("Convertir AFN a AFD");
+        
+        // --- NUEVA OPCIÓN: PROBAR LÉXICO ---
+        JMenuItem itemProbarLexico = new JMenuItem("Probar Analizador Léxico");
+        itemProbarLexico.setForeground(new Color(0, 102, 204)); // Azulito para que resalte
+        
         JMenuItem itemBorrar = new JMenuItem("Borrar AFN...");
         itemBorrar.setForeground(Color.RED);
 
@@ -73,6 +76,8 @@ public class VentanaPrincipal extends JFrame {
         menuOperaciones.add(itemOpcional);
         menuOperaciones.addSeparator();
         menuOperaciones.add(itemConvertir);
+        menuOperaciones.addSeparator();
+        menuOperaciones.add(itemProbarLexico); // <-- Agregado al menú
         menuOperaciones.addSeparator();
         menuOperaciones.add(itemBorrar);
 
@@ -111,6 +116,10 @@ public class VentanaPrincipal extends JFrame {
         contenedorTarjetas.add(crearPanelOperacionBinariaSimple("Concatenación", "Concatenar:", comboConcat1, comboConcat2, lblImagenConcat, false), "Concatenar");
         
         contenedorTarjetas.add(crearPanelConvertir(), "Convertir");
+        
+        // --- NUEVA VISTA AL CONTENEDOR ---
+        contenedorTarjetas.add(crearPanelProbarLexico(), "ProbarLexico");
+        
         contenedorTarjetas.add(new JPanel(), "Vacio"); 
         
         panelAFN.add(contenedorTarjetas, BorderLayout.CENTER);
@@ -126,139 +135,112 @@ public class VentanaPrincipal extends JFrame {
         itemUnirNormal.addActionListener(e -> { actualizarListas(); cardLayout.show(contenedorTarjetas, "UnionNormal"); });
         itemConcatenar.addActionListener(e -> { actualizarListas(); cardLayout.show(contenedorTarjetas, "Concatenar"); });
         itemConvertir.addActionListener(e -> { actualizarListas(); cardLayout.show(contenedorTarjetas, "Convertir"); });
+        itemProbarLexico.addActionListener(e -> cardLayout.show(contenedorTarjetas, "ProbarLexico")); // Mostrar panel
         itemBorrar.addActionListener(e -> mostrarDialogoBorrar());
     }
 
     // =======================================================
-    // NUEVO: PANEL BÁSICO (UN SOLO CARÁCTER)
+    // NUEVO: PANEL DE PRUEBA DEL ANALIZADOR LÉXICO
     // =======================================================
-    private JPanel crearPanelBasicoUnCaracter() {
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setDividerLocation(300);
+    private JPanel crearPanelProbarLexico() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        JPanel panelIzquierdo = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        // Norte: Controles para cargar el archivo
+        JPanel panelNorte = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton btnCargar = new JButton("Cargar Tabla AFD (.txt)");
+        JLabel lblArchivo = new JLabel("Ningún archivo seleccionado");
+        lblArchivo.setFont(new Font("Arial", Font.ITALIC, 12));
+        lblArchivo.setForeground(Color.GRAY);
+        panelNorte.add(btnCargar);
+        panelNorte.add(lblArchivo);
 
-        JCheckBox checkAscii = new JCheckBox("Usar código ASCII");
-        JTextField txtCaracter = new JTextField(5); 
-        JTextField txtIdAfn = new JTextField(5);
-        JButton btnCrear = new JButton("Crear AFN");
+        // Centro: Área de texto para el código a analizar
+        JPanel panelCentro = new JPanel(new BorderLayout(5, 5));
+        JLabel lblInstruccion = new JLabel("Ingrese la cadena o código fuente a analizar:");
+        lblInstruccion.setFont(new Font("Arial", Font.BOLD, 14));
+        panelCentro.add(lblInstruccion, BorderLayout.NORTH);
+        
+        JTextArea txtCodigo = new JTextArea(8, 50);
+        txtCodigo.setFont(new Font("Monospaced", Font.PLAIN, 16));
+        JScrollPane scrollCodigo = new JScrollPane(txtCodigo);
+        panelCentro.add(scrollCodigo, BorderLayout.CENTER);
 
-        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2; panelIzquierdo.add(checkAscii, gbc);
-        gbc.gridwidth = 1; gbc.gridy = 1; panelIzquierdo.add(new JLabel("Carácter:"), gbc); gbc.gridx = 1; panelIzquierdo.add(txtCaracter, gbc);
-        gbc.gridx = 0; gbc.gridy = 2; panelIzquierdo.add(new JLabel("ID AFN:"), gbc); gbc.gridx = 1; panelIzquierdo.add(txtIdAfn, gbc);
-        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2; panelIzquierdo.add(btnCrear, gbc);
+        JButton btnAnalizar = new JButton("Ejecutar Análisis Léxico");
+        btnAnalizar.setFont(new Font("Arial", Font.BOLD, 14));
+        btnAnalizar.setBackground(new Color(0, 120, 215));
+        btnAnalizar.setForeground(Color.WHITE);
+        panelCentro.add(btnAnalizar, BorderLayout.SOUTH);
 
-        JScrollPane scrollImagen = new JScrollPane(lblImagenBasicoUn);
-        splitPane.setLeftComponent(panelIzquierdo); splitPane.setRightComponent(scrollImagen);
+        // Sur: Tabla para mostrar los Tokens y Lexemas encontrados
+        String[] columnas = {"Token Encontrado", "Lexema"};
+        DefaultTableModel modeloResultados = new DefaultTableModel(columnas, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; } // Tabla de solo lectura
+        };
+        JTable tablaResultados = new JTable(modeloResultados);
+        tablaResultados.setRowHeight(25);
+        tablaResultados.setFont(new Font("Arial", Font.PLAIN, 14));
+        JScrollPane scrollResultados = new JScrollPane(tablaResultados);
+        scrollResultados.setBorder(BorderFactory.createTitledBorder("Resultados del Análisis"));
 
-        btnCrear.addActionListener(e -> {
-            try {
-                if(txtIdAfn.getText().trim().isEmpty() || txtCaracter.getText().isEmpty()){
-                    JOptionPane.showMessageDialog(this, "Por favor llene todos los campos.", "Campos vacíos", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
+        JSplitPane splitVertical = new JSplitPane(JSplitPane.VERTICAL_SPLIT, panelCentro, scrollResultados);
+        splitVertical.setDividerLocation(200);
 
-                int nuevoId = Integer.parseInt(txtIdAfn.getText().trim());
-                
-                if (obtenerAFNPorId(nuevoId) != null) {
-                    JOptionPane.showMessageDialog(this, "Ya existe un autómata con el ID " + nuevoId + ".", "ID Duplicado", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
+        panel.add(panelNorte, BorderLayout.NORTH);
+        panel.add(splitVertical, BorderLayout.CENTER);
 
-                AFN nuevoAfn = new AFN();
-                char c;
-                if (checkAscii.isSelected()) { c = (char) Integer.parseInt(txtCaracter.getText()); } 
-                else { c = txtCaracter.getText().charAt(0); }
+        // --- LÓGICA DE LOS BOTONES ---
+        final String[] rutaArchivo = {""};
 
-                nuevoAfn.crearAFNBasico(c);
-                nuevoAfn.idAFN = nuevoId;
-                
-                String nombreImg = "AFN_" + nuevoAfn.idAFN;
-                nuevoAfn.generarGrafico(nombreImg);
-                cargarImagenEnLabel(lblImagenBasicoUn, "imagenes/" + nombreImg + ".png");
-                actualizarListas();
-                
-                JOptionPane.showMessageDialog(this, "Autómata Básico con ID " + nuevoId + " creado con éxito.", "Creación Exitosa", JOptionPane.INFORMATION_MESSAGE);
-
-            } catch (Exception ex) { 
-                JOptionPane.showMessageDialog(this, "Error de entrada. Verifique que el ID sea numérico.", "Error", JOptionPane.ERROR_MESSAGE); 
+        btnCargar.addActionListener(e -> {
+            // Se abre directo en la carpeta donde guardamos los txt
+            JFileChooser chooser = new JFileChooser(new File("tablas_afd").getAbsolutePath());
+            chooser.setDialogTitle("Seleccionar Tabla de AFD generada");
+            int seleccion = chooser.showOpenDialog(panel);
+            if (seleccion == JFileChooser.APPROVE_OPTION) {
+                File archivo = chooser.getSelectedFile();
+                rutaArchivo[0] = archivo.getAbsolutePath();
+                lblArchivo.setText("Cargado: " + archivo.getName());
+                lblArchivo.setForeground(new Color(0, 153, 0)); // Letras verdes
+                lblArchivo.setFont(new Font("Arial", Font.BOLD, 12));
             }
         });
-        
-        JPanel panelFinal = new JPanel(new BorderLayout());
-        panelFinal.add(splitPane, BorderLayout.CENTER);
-        return panelFinal;
+
+        btnAnalizar.addActionListener(e -> {
+            if (rutaArchivo[0].isEmpty()) {
+                JOptionPane.showMessageDialog(panel, "Debe cargar un archivo Tabla_AFD_X.txt primero.", "Archivo faltante", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (txtCodigo.getText().isEmpty()) {
+                JOptionPane.showMessageDialog(panel, "La cadena a analizar está vacía.", "Sin texto", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            modeloResultados.setRowCount(0); // Limpiar tabla de resultados anteriores
+            
+            try {
+                AnalizadorLexico lexico = new AnalizadorLexico(rutaArchivo[0]);
+                lexico.setSigma(txtCodigo.getText());
+                
+                int tokenHallado;
+                while ((tokenHallado = lexico.yylex()) != AnalizadorLexico.TOKEN_FIN) {
+                    if (tokenHallado == AnalizadorLexico.TOKEN_ERROR) {
+                        modeloResultados.addRow(new Object[]{"ERROR LÉXICO", lexico.getLexema()});
+                    } else {
+                        modeloResultados.addRow(new Object[]{String.valueOf(tokenHallado), lexico.getLexema()});
+                    }
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(panel, "Hubo un problema al analizar: " + ex.getMessage(), "Error Interno", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        return panel;
     }
 
     // =======================================================
-    // PANEL BÁSICO (RANGO DE CARACTERES)
-    // =======================================================
-    private JPanel crearPanelBasicoRango() {
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setDividerLocation(300);
-
-        JPanel panelIzquierdo = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        JCheckBox checkAscii = new JCheckBox("Usar código ASCII");
-        JTextField txtInferior = new JTextField(5); JTextField txtSuperior = new JTextField(5); JTextField txtIdAfn = new JTextField(5);
-        JButton btnCrear = new JButton("Crear AFN");
-
-        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2; panelIzquierdo.add(checkAscii, gbc);
-        gbc.gridwidth = 1; gbc.gridy = 1; panelIzquierdo.add(new JLabel("Caracter inferior:"), gbc); gbc.gridx = 1; panelIzquierdo.add(txtInferior, gbc);
-        gbc.gridx = 0; gbc.gridy = 2; panelIzquierdo.add(new JLabel("Caracter superior:"), gbc); gbc.gridx = 1; panelIzquierdo.add(txtSuperior, gbc);
-        gbc.gridx = 0; gbc.gridy = 3; panelIzquierdo.add(new JLabel("ID AFN:"), gbc); gbc.gridx = 1; panelIzquierdo.add(txtIdAfn, gbc);
-        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2; panelIzquierdo.add(btnCrear, gbc);
-
-        JScrollPane scrollImagen = new JScrollPane(lblImagenBasicoRango);
-        splitPane.setLeftComponent(panelIzquierdo); splitPane.setRightComponent(scrollImagen);
-
-        btnCrear.addActionListener(e -> {
-            try {
-                if(txtIdAfn.getText().trim().isEmpty() || txtInferior.getText().isEmpty() || txtSuperior.getText().isEmpty()){
-                    JOptionPane.showMessageDialog(this, "Por favor llene todos los campos.", "Campos vacíos", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                int nuevoId = Integer.parseInt(txtIdAfn.getText().trim());
-                
-                if (obtenerAFNPorId(nuevoId) != null) {
-                    JOptionPane.showMessageDialog(this, "Ya existe un autómata con el ID " + nuevoId + ".", "ID Duplicado", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                AFN nuevoAfn = new AFN();
-                char cInf, cSup;
-                if (checkAscii.isSelected()) { cInf = (char) Integer.parseInt(txtInferior.getText()); cSup = (char) Integer.parseInt(txtSuperior.getText()); } 
-                else { cInf = txtInferior.getText().charAt(0); cSup = txtSuperior.getText().charAt(0); }
-
-                if (cInf == cSup) nuevoAfn.crearAFNBasico(cInf); else nuevoAfn.crearAFNBasico(cInf, cSup);
-
-                nuevoAfn.idAFN = nuevoId;
-                String nombreImg = "AFN_" + nuevoAfn.idAFN;
-                nuevoAfn.generarGrafico(nombreImg);
-                cargarImagenEnLabel(lblImagenBasicoRango, "imagenes/" + nombreImg + ".png");
-                actualizarListas();
-                
-                JOptionPane.showMessageDialog(this, "Autómata de Rango con ID " + nuevoId + " creado con éxito.", "Creación Exitosa", JOptionPane.INFORMATION_MESSAGE);
-
-            } catch (Exception ex) { 
-                JOptionPane.showMessageDialog(this, "Error de entrada. Verifique que el ID sea numérico.", "Error", JOptionPane.ERROR_MESSAGE); 
-            }
-        });
-        
-        JPanel panelFinal = new JPanel(new BorderLayout());
-        panelFinal.add(splitPane, BorderLayout.CENTER);
-        return panelFinal;
-    }
-
-    // =======================================================
-    // PANEL DE CONVERSIÓN A AFD
+    // PANEL DE CONVERSIÓN A AFD 
     // =======================================================
     private JPanel crearPanelConvertir() {
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
@@ -299,7 +281,10 @@ public class VentanaPrincipal extends JFrame {
                     String nombreImgAfd = "AFD_" + afnBase.idAFN;
                     afdResultante.generarGrafico(nombreImgAfd);
                     
-                    JOptionPane.showMessageDialog(this, "El autómata se convirtió exitosamente a AFD.\nEstados resultantes: " + afdResultante.numEstados, "Conversión Exitosa", JOptionPane.INFORMATION_MESSAGE);
+                    String rutaTxt = "tablas_afd/Tabla_AFD_" + afnBase.idAFN + ".txt";
+                    afdResultante.guardarAFDEnArchivo(rutaTxt);
+                    
+                    JOptionPane.showMessageDialog(this, "El autómata se convirtió exitosamente a AFD.\nEstados resultantes: " + afdResultante.numEstados + "\n\nLa tabla se guardó en:\n" + rutaTxt, "Conversión Exitosa", JOptionPane.INFORMATION_MESSAGE);
                     mostrarVentanaFlotante("imagenes/" + nombreImgAfd + ".png", "Resultado: AFD del Autómata " + afnBase.idAFN);
                     
                 } catch (Exception ex) {
@@ -310,6 +295,155 @@ public class VentanaPrincipal extends JFrame {
             }
         });
 
+        JPanel panelFinal = new JPanel(new BorderLayout());
+        panelFinal.add(splitPane, BorderLayout.CENTER);
+        return panelFinal;
+    }
+
+    // =======================================================
+    // PANEL BÁSICO (UN SOLO CARÁCTER)
+    // =======================================================
+  // =======================================================
+    // PANEL BÁSICO (UN SOLO CARÁCTER) - CORREGIDO
+    // =======================================================
+    private JPanel crearPanelBasicoUnCaracter() {
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        splitPane.setDividerLocation(300);
+
+        JPanel panelIzquierdo = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        JCheckBox checkAscii = new JCheckBox("Usar código ASCII");
+        JTextField txtCaracter = new JTextField(5); 
+        JTextField txtIdAfn = new JTextField(5);
+        JButton btnCrear = new JButton("Crear AFN");
+
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2; panelIzquierdo.add(checkAscii, gbc);
+        gbc.gridwidth = 1; gbc.gridy = 1; panelIzquierdo.add(new JLabel("Carácter:"), gbc); gbc.gridx = 1; panelIzquierdo.add(txtCaracter, gbc);
+        gbc.gridx = 0; gbc.gridy = 2; panelIzquierdo.add(new JLabel("ID AFN:"), gbc); gbc.gridx = 1; panelIzquierdo.add(txtIdAfn, gbc);
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2; panelIzquierdo.add(btnCrear, gbc);
+
+        JScrollPane scrollImagen = new JScrollPane(lblImagenBasicoUn);
+        splitPane.setLeftComponent(panelIzquierdo); splitPane.setRightComponent(scrollImagen);
+
+        btnCrear.addActionListener(e -> {
+            try {
+                if(txtIdAfn.getText().trim().isEmpty() || txtCaracter.getText().isEmpty()){
+                    JOptionPane.showMessageDialog(this, "Por favor llene todos los campos.", "Campos vacíos", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                int nuevoId = Integer.parseInt(txtIdAfn.getText().trim());
+                
+                if (obtenerAFNPorId(nuevoId) != null) {
+                    JOptionPane.showMessageDialog(this, "Ya existe un autómata con el ID " + nuevoId + ".", "ID Duplicado", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                AFN nuevoAfn = new AFN();
+                char c;
+                if (checkAscii.isSelected()) { 
+                    c = (char) Integer.parseInt(txtCaracter.getText().trim()); 
+                } else { 
+                    // === NUEVA LÓGICA INTELIGENTE DE CARACTERES ===
+                    String input = txtCaracter.getText();
+                    if (input.trim().isEmpty()) {
+                        c = ' '; // Si escribieron puros espacios, asumimos que quería un espacio
+                    } else {
+                        c = input.trim().charAt(0); // Quita espacios accidentales a los lados y toma la letra/signo
+                    }
+                }
+
+                nuevoAfn.crearAFNBasico(c);
+                nuevoAfn.idAFN = nuevoId;
+                
+                String nombreImg = "AFN_" + nuevoAfn.idAFN;
+                nuevoAfn.generarGrafico(nombreImg);
+                cargarImagenEnLabel(lblImagenBasicoUn, "imagenes/" + nombreImg + ".png");
+                actualizarListas();
+                
+                JOptionPane.showMessageDialog(this, "Autómata Básico con ID " + nuevoId + " creado con éxito.", "Creación Exitosa", JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (Exception ex) { 
+                JOptionPane.showMessageDialog(this, "Error de entrada. Verifique que el ID sea numérico.", "Error", JOptionPane.ERROR_MESSAGE); 
+            }
+        });
+        
+        JPanel panelFinal = new JPanel(new BorderLayout());
+        panelFinal.add(splitPane, BorderLayout.CENTER);
+        return panelFinal;
+    }
+
+    // =======================================================
+    // PANEL BÁSICO (RANGO DE CARACTERES) - CORREGIDO
+    // =======================================================
+    private JPanel crearPanelBasicoRango() {
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        splitPane.setDividerLocation(300);
+
+        JPanel panelIzquierdo = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        JCheckBox checkAscii = new JCheckBox("Usar código ASCII");
+        JTextField txtInferior = new JTextField(5); JTextField txtSuperior = new JTextField(5); JTextField txtIdAfn = new JTextField(5);
+        JButton btnCrear = new JButton("Crear AFN");
+
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2; panelIzquierdo.add(checkAscii, gbc);
+        gbc.gridwidth = 1; gbc.gridy = 1; panelIzquierdo.add(new JLabel("Caracter inferior:"), gbc); gbc.gridx = 1; panelIzquierdo.add(txtInferior, gbc);
+        gbc.gridx = 0; gbc.gridy = 2; panelIzquierdo.add(new JLabel("Caracter superior:"), gbc); gbc.gridx = 1; panelIzquierdo.add(txtSuperior, gbc);
+        gbc.gridx = 0; gbc.gridy = 3; panelIzquierdo.add(new JLabel("ID AFN:"), gbc); gbc.gridx = 1; panelIzquierdo.add(txtIdAfn, gbc);
+        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2; panelIzquierdo.add(btnCrear, gbc);
+
+        JScrollPane scrollImagen = new JScrollPane(lblImagenBasicoRango);
+        splitPane.setLeftComponent(panelIzquierdo); splitPane.setRightComponent(scrollImagen);
+
+        btnCrear.addActionListener(e -> {
+            try {
+                if(txtIdAfn.getText().trim().isEmpty() || txtInferior.getText().isEmpty() || txtSuperior.getText().isEmpty()){
+                    JOptionPane.showMessageDialog(this, "Por favor llene todos los campos.", "Campos vacíos", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                int nuevoId = Integer.parseInt(txtIdAfn.getText().trim());
+                
+                if (obtenerAFNPorId(nuevoId) != null) {
+                    JOptionPane.showMessageDialog(this, "Ya existe un autómata con el ID " + nuevoId + ".", "ID Duplicado", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                AFN nuevoAfn = new AFN();
+                char cInf, cSup;
+                if (checkAscii.isSelected()) { 
+                    cInf = (char) Integer.parseInt(txtInferior.getText().trim()); 
+                    cSup = (char) Integer.parseInt(txtSuperior.getText().trim()); 
+                } else { 
+                    // === NUEVA LÓGICA INTELIGENTE DE CARACTERES ===
+                    String inputInf = txtInferior.getText();
+                    String inputSup = txtSuperior.getText();
+                    
+                    cInf = inputInf.trim().isEmpty() ? ' ' : inputInf.trim().charAt(0);
+                    cSup = inputSup.trim().isEmpty() ? ' ' : inputSup.trim().charAt(0);
+                }
+
+                if (cInf == cSup) nuevoAfn.crearAFNBasico(cInf); else nuevoAfn.crearAFNBasico(cInf, cSup);
+
+                nuevoAfn.idAFN = nuevoId;
+                String nombreImg = "AFN_" + nuevoAfn.idAFN;
+                nuevoAfn.generarGrafico(nombreImg);
+                cargarImagenEnLabel(lblImagenBasicoRango, "imagenes/" + nombreImg + ".png");
+                actualizarListas();
+                
+                JOptionPane.showMessageDialog(this, "Autómata de Rango con ID " + nuevoId + " creado con éxito.", "Creación Exitosa", JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (Exception ex) { 
+                JOptionPane.showMessageDialog(this, "Error de entrada. Verifique que el ID sea numérico.", "Error", JOptionPane.ERROR_MESSAGE); 
+            }
+        });
+        
         JPanel panelFinal = new JPanel(new BorderLayout());
         panelFinal.add(splitPane, BorderLayout.CENTER);
         return panelFinal;

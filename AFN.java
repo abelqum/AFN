@@ -267,13 +267,11 @@ public class AFN {
         int numSJ = 0;
         int idEncontrado;
 
-        // Paso 1: Cerradura Epsilon del estado inicial
         C.conjEstados = cerraduraEpsilon(this.estadoInicial);
         C.j = numSJ++;
         R.add(C);
         Q.add(C);
 
-        // Paso 2: Evaluar transiciones
         while (!Q.isEmpty()) {
             C = Q.poll(); 
 
@@ -302,21 +300,33 @@ public class AFN {
             }
         }
 
-        // Paso 3: Construir el objeto AFD
         AFD afdGenerado = new AFD();
         afdGenerado.numEstados = numSJ;
+        afdGenerado.idAFD = this.idAFN; // Le pasamos el ID del autómata
+
+        // Mapa temporal para guardar qué Token le toca a qué estado del AFD
+        HashMap<Integer, Integer> tokensPorEstado = new HashMap<>();
 
         for (Subconjunto sj : R) {
             afdGenerado.tablaTransiciones.put(sj.j, sj.arregloTrans);
             
-            // Verificar si este subconjunto contiene un estado de aceptación original
+            int tokenAsignado = -1;
             for (Estado e : sj.conjEstados) {
                 if (e.edoAccept) {
                     afdGenerado.estadosAceptacion.add(sj.j);
-                    break;
+                    // Si el estado original traía un Token, se lo hereda a este superestado
+                    if (e.token != -1) {
+                        tokenAsignado = e.token;
+                    }
                 }
             }
+            if(tokenAsignado != -1){
+                tokensPorEstado.put(sj.j, tokenAsignado);
+            }
         }
+
+        // --- LLAMADA MAESTRA: Convierte el mapa a la matriz int[Estados][257] ---
+        afdGenerado.construirTablaBidimensional(tokensPorEstado);
 
         return afdGenerado;
     }
