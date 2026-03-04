@@ -32,7 +32,7 @@ public class VentanaPrincipal extends JFrame {
     private JLabel lblImagenAfnAfd;
 
     public VentanaPrincipal() {
-        setTitle("Generador de Analizadores Léxicos");
+        setTitle("Generador de Analizadores Léxicos y Sintácticos");
         setSize(1000, 680); 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -42,11 +42,15 @@ public class VentanaPrincipal extends JFrame {
         panelVacio = new JPanel(new BorderLayout());
         panelVacio.add(new JLabel("Próximamente...", SwingConstants.CENTER), BorderLayout.CENTER);
 
-        pestañas.addTab("AFN's", panelAFN);
-        pestañas.addTab("Lexico", panelVacio);
+        pestañas.addTab("Compilador", panelAFN); // Le cambiamos el nombre a la pestaña principal
+        pestañas.addTab("Acerca de", panelVacio);
 
         JMenuBar menuBar = new JMenuBar();
-        JMenu menuOperaciones = new JMenu("Operaciones AFN");
+        
+        // ==========================================
+        // MENÚ 1: OPERACIONES AFN (ANALIZADOR LÉXICO)
+        // ==========================================
+        JMenu menuOperaciones = new JMenu("Operaciones AFN (Léxico)");
 
         JMenuItem itemBasicoUn = new JMenuItem("Básico (Un carácter)");
         JMenuItem itemBasicoRango = new JMenuItem("Básico (Rango)");
@@ -57,10 +61,8 @@ public class VentanaPrincipal extends JFrame {
         JMenuItem itemKleene = new JMenuItem("Cerradura *");
         JMenuItem itemOpcional = new JMenuItem("Opcional");
         JMenuItem itemConvertir = new JMenuItem("Convertir AFN a AFD");
-        
         JMenuItem itemProbarLexico = new JMenuItem("Probar Analizador Léxico");
         itemProbarLexico.setForeground(new Color(0, 102, 204)); 
-        
         JMenuItem itemBorrar = new JMenuItem("Borrar AFN...");
         itemBorrar.setForeground(Color.RED);
 
@@ -80,7 +82,18 @@ public class VentanaPrincipal extends JFrame {
         menuOperaciones.addSeparator();
         menuOperaciones.add(itemBorrar);
 
+        // ==========================================
+        // MENÚ 2: ANALIZADOR SINTÁCTICO (NUEVO)
+        // ==========================================
+        JMenu menuSintactico = new JMenu("Analizador Sintáctico");
+        JMenuItem itemDescenso = new JMenuItem("Descenso Recursivo (Calculadora)");
+        itemDescenso.setForeground(new Color(0, 153, 76)); // Color verde oscuro para distinguirlo
+        
+        menuSintactico.add(itemDescenso);
+
+        // Agregamos los menús a la barra
         menuBar.add(menuOperaciones);
+        menuBar.add(menuSintactico);
         panelAFN.add(menuBar, BorderLayout.NORTH);
 
         cardLayout = new CardLayout();
@@ -103,7 +116,7 @@ public class VentanaPrincipal extends JFrame {
         lblImagenUnionNormal = new JLabel("El AFN unido aparecerá aquí", SwingConstants.CENTER);
         lblImagenAfnAfd = new JLabel("Selecciona un AFN para ver su origen", SwingConstants.CENTER);
 
-        // Agregando Vistas
+        // Agregando Vistas al CardLayout
         contenedorTarjetas.add(crearPanelBasicoUnCaracter(), "BasicoUn");
         contenedorTarjetas.add(crearPanelBasicoRango(), "BasicoRango");
         contenedorTarjetas.add(crearPanelOperacionUnaria("Cerradura +", "+", comboAFNsPositiva, lblImagenPositiva), "Positiva");
@@ -116,12 +129,16 @@ public class VentanaPrincipal extends JFrame {
         
         contenedorTarjetas.add(crearPanelConvertir(), "Convertir");
         contenedorTarjetas.add(crearPanelProbarLexico(), "ProbarLexico");
+        
+        // --- AÑADIENDO LA NUEVA VISTA DEL SINTÁCTICO ---
+        contenedorTarjetas.add(crearPanelDescensoRecursivo(), "DescensoRecursivo");
+        
         contenedorTarjetas.add(new JPanel(), "Vacio"); 
         
         panelAFN.add(contenedorTarjetas, BorderLayout.CENTER);
         add(pestañas);
 
-        // Eventos del Menú
+        // Eventos del Menú Léxico
         itemBasicoUn.addActionListener(e -> cardLayout.show(contenedorTarjetas, "BasicoUn"));
         itemBasicoRango.addActionListener(e -> cardLayout.show(contenedorTarjetas, "BasicoRango"));
         itemPositiva.addActionListener(e -> { actualizarListas(); cardLayout.show(contenedorTarjetas, "Positiva"); });
@@ -133,6 +150,121 @@ public class VentanaPrincipal extends JFrame {
         itemConvertir.addActionListener(e -> { actualizarListas(); cardLayout.show(contenedorTarjetas, "Convertir"); });
         itemProbarLexico.addActionListener(e -> cardLayout.show(contenedorTarjetas, "ProbarLexico"));
         itemBorrar.addActionListener(e -> mostrarDialogoBorrar());
+        
+        // Eventos del Menú Sintáctico
+        itemDescenso.addActionListener(e -> cardLayout.show(contenedorTarjetas, "DescensoRecursivo"));
+    }
+
+    // =======================================================
+    // NUEVO: PANEL DE DESCENSO RECURSIVO (CALCULADORA)
+    // =======================================================
+    private JPanel crearPanelDescensoRecursivo() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Norte: Controles para cargar el archivo
+        JPanel panelNorte = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton btnCargar = new JButton("Cargar Tabla AFD (.txt)");
+        JLabel lblArchivo = new JLabel("Ningún archivo seleccionado");
+        lblArchivo.setFont(new Font("Arial", Font.ITALIC, 12));
+        lblArchivo.setForeground(Color.GRAY);
+        panelNorte.add(btnCargar);
+        panelNorte.add(lblArchivo);
+
+        // Centro: Área de Input y Resultados
+        JPanel panelCentro = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(15, 10, 15, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        JLabel lblInstruccion = new JLabel("Expresión a evaluar:");
+        lblInstruccion.setFont(new Font("Arial", Font.BOLD, 16));
+        
+        JTextField txtExpresion = new JTextField(25);
+        txtExpresion.setFont(new Font("Monospaced", Font.BOLD, 18));
+        
+        JButton btnEvaluar = new JButton("Evaluar Sintácticamente");
+        btnEvaluar.setFont(new Font("Arial", Font.BOLD, 16));
+        btnEvaluar.setBackground(new Color(0, 153, 76)); // Color Verde
+        btnEvaluar.setForeground(Color.WHITE);
+
+        JLabel lblResultado = new JLabel("Esperando expresión...");
+        lblResultado.setFont(new Font("Arial", Font.BOLD, 16));
+        lblResultado.setForeground(Color.BLUE);
+
+        gbc.gridx = 0; gbc.gridy = 0; panelCentro.add(lblInstruccion, gbc);
+        gbc.gridx = 1; panelCentro.add(txtExpresion, gbc);
+        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 2; panelCentro.add(btnEvaluar, gbc);
+        gbc.gridy = 2; panelCentro.add(lblResultado, gbc);
+
+        // Añadimos una nota de ayuda abajo
+        JLabel lblAyuda = new JLabel("<html><b>Aviso:</b> Para que esto funcione, el AFD cargado debe usar los siguientes Tokens:<br>"
+                + "+ (10), - (20), * (30), / (40), ( (50), ) (60), NUM (70), Espacios (20001)</html>");
+        lblAyuda.setForeground(Color.DARK_GRAY);
+        
+        panel.add(panelNorte, BorderLayout.NORTH);
+        panel.add(panelCentro, BorderLayout.CENTER);
+        panel.add(lblAyuda, BorderLayout.SOUTH);
+
+        // --- LÓGICA DE LOS BOTONES ---
+        final String[] rutaArchivo = {""};
+
+        btnCargar.addActionListener(e -> {
+            File rutaDefecto = new File("tablas_afd");
+            if (!rutaDefecto.exists()) { rutaDefecto = new File(System.getProperty("user.dir")); }
+            
+            JFileChooser chooser = new JFileChooser(rutaDefecto.getAbsolutePath());
+            chooser.setDialogTitle("Seleccionar Tabla de AFD para Calculadora (.txt)");
+            
+            if (chooser.showOpenDialog(VentanaPrincipal.this) == JFileChooser.APPROVE_OPTION) {
+                File archivo = chooser.getSelectedFile();
+                rutaArchivo[0] = archivo.getAbsolutePath();
+                lblArchivo.setText("Cargado: " + archivo.getName());
+                lblArchivo.setForeground(new Color(0, 153, 0)); 
+            }
+        });
+
+        btnEvaluar.addActionListener(e -> {
+            if (rutaArchivo[0].isEmpty()) {
+                JOptionPane.showMessageDialog(VentanaPrincipal.this, "Debe cargar un archivo Tabla_AFD_X.txt primero.", "Archivo faltante", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (txtExpresion.getText().trim().isEmpty()) {
+                JOptionPane.showMessageDialog(VentanaPrincipal.this, "Ingrese una expresión matemática.", "Sin texto", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            try {
+                // Instanciamos la clase que creaste anteriormente
+                EvaluadorExpr evaluador = new EvaluadorExpr(txtExpresion.getText(), rutaArchivo[0]);
+                
+                // Disparamos la evaluación sintáctica
+                boolean sintaxisCorrecta = evaluador.iniEval();
+
+                if (sintaxisCorrecta) {
+                    lblResultado.setText("Resultado: " + evaluador.result);
+                    
+                    JOptionPane.showMessageDialog(VentanaPrincipal.this, 
+                        "¡El Análisis Sintáctico fue Exitoso!\n\n"
+                        + "La estructura de la expresión es válida según la gramática.\n"
+                        + "► Notación Postfija: " + evaluador.exprPost + "\n"
+                        + "► Resultado Matemático: " + evaluador.result, 
+                        "Evaluación Correcta", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    lblResultado.setText("Resultado: ERROR SINTÁCTICO");
+                    
+                    JOptionPane.showMessageDialog(VentanaPrincipal.this, 
+                        "Se encontró un Error Sintáctico en la expresión.\n"
+                        + "Revise que los paréntesis estén cerrados o que no falten operadores.", 
+                        "Error de Sintaxis", JOptionPane.ERROR_MESSAGE);
+                }
+                
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(VentanaPrincipal.this, "Hubo un problema al procesar la expresión. Verifica que los tokens sean correctos.\n" + ex.getMessage(), "Error Interno", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        return panel;
     }
 
     // =======================================================
@@ -190,13 +322,9 @@ public class VentanaPrincipal extends JFrame {
         final String[] rutaArchivo = {""};
 
         btnCargar.addActionListener(e -> {
-            // Validación para evitar errores si la carpeta aún no existe
             File rutaDefecto = new File("tablas_afd");
-            if (!rutaDefecto.exists()) {
-                rutaDefecto = new File(System.getProperty("user.dir")); // Va a la carpeta del proyecto si no existe tablas_afd
-            }
+            if (!rutaDefecto.exists()) { rutaDefecto = new File(System.getProperty("user.dir")); }
             
-            // Pasamos VentanaPrincipal.this para que la ventana de elegir archivo no se esconda
             JFileChooser chooser = new JFileChooser(rutaDefecto.getAbsolutePath());
             chooser.setDialogTitle("Seleccionar Tabla de AFD generada (.txt)");
             
