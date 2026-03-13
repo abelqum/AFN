@@ -83,14 +83,16 @@ public class VentanaPrincipal extends JFrame {
         menuAFN.addSeparator();
         menuAFN.add(itemBorrar);
 
-        // --- 2. MENÚ PRINCIPAL: ANALIZADOR SINTÁCTICO ---
+       // --- 2. MENÚ PRINCIPAL: ANALIZADOR SINTÁCTICO ---
         JMenu menuSintactico = new JMenu("Analizador Sintáctico");
-        
-        // Submenú y su opción
         JMenu subMenuDescenso = new JMenu("Descenso Recursivo");
+        
         JMenuItem itemCalculadora = new JMenuItem("Calculadora");
+        JMenuItem itemPolinomios = new JMenuItem("Polinomios"); // <-- NUEVO
+        //itemPolinomios.setForeground(new Color(204, 102, 0)); // Naranja para diferenciar
         
         subMenuDescenso.add(itemCalculadora);
+        subMenuDescenso.add(itemPolinomios); // <-- Añadido al submenú
         menuSintactico.add(subMenuDescenso);
 
         // Agregamos los menús a la barra principal
@@ -135,7 +137,7 @@ public class VentanaPrincipal extends JFrame {
         
         // Panel de la Calculadora (Analizador Sintáctico)
         contenedorTarjetas.add(crearPanelCalculadora(), "Calculadora");
-        
+        contenedorTarjetas.add(crearPanelPolinomios(), "Polinomios");
         // Agregamos el contenedor al centro de la ventana
         add(contenedorTarjetas, BorderLayout.CENTER);
 
@@ -158,7 +160,8 @@ public class VentanaPrincipal extends JFrame {
         itemProbarLexico.addActionListener(e -> cardLayout.show(contenedorTarjetas, "ProbarLexico"));
         
         // Nuevo Evento para la Calculadora
-        itemCalculadora.addActionListener(e -> cardLayout.show(contenedorTarjetas, "Calculadora"));
+       itemCalculadora.addActionListener(e -> cardLayout.show(contenedorTarjetas, "Calculadora"));
+        itemPolinomios.addActionListener(e -> cardLayout.show(contenedorTarjetas, "Polinomios")); // <-- NUEVO EVENTO
         
         itemBorrar.addActionListener(e -> mostrarDialogoBorrar());
     }
@@ -283,6 +286,98 @@ public class VentanaPrincipal extends JFrame {
         return panel;
     }
 
+    
+    // =======================================================
+    // PANEL DE POLINOMIOS (ANALIZADOR SINTÁCTICO)
+    // =======================================================
+    private JPanel crearPanelPolinomios() {
+        JPanel panel = new JPanel(new BorderLayout(15, 15));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JPanel panelNorte = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton btnCargar = new JButton("Cargar Tabla AFD (.txt)");
+        JLabel lblArchivo = new JLabel("Ningún archivo seleccionado");
+        lblArchivo.setFont(new Font("Arial", Font.ITALIC, 12));
+        lblArchivo.setForeground(Color.GRAY);
+        panelNorte.add(btnCargar);
+        panelNorte.add(lblArchivo);
+
+        JPanel panelCentro = new JPanel(new BorderLayout(10, 10));
+        JLabel lblInstruccion = new JLabel("Ingrese expresión de polinomios (ej: R = 3x^2 + 5x - 8):");
+        lblInstruccion.setFont(new Font("Arial", Font.BOLD, 14));
+        panelCentro.add(lblInstruccion, BorderLayout.NORTH);
+        
+        JTextArea txtExpresion = new JTextArea();
+        txtExpresion.setFont(new Font("Monospaced", Font.BOLD, 22));
+        txtExpresion.setMargin(new Insets(10, 10, 10, 10)); 
+        txtExpresion.setLineWrap(true);
+        txtExpresion.setWrapStyleWord(true);
+        
+        JScrollPane scrollExpresion = new JScrollPane(txtExpresion);
+        panelCentro.add(scrollExpresion, BorderLayout.CENTER);
+
+        JButton btnEvaluar = new JButton("Validar Sintaxis (Descenso Recursivo)");
+        btnEvaluar.setFont(new Font("Arial", Font.BOLD, 14));
+        btnEvaluar.setBackground(new Color(204, 102, 0)); // Naranja
+        btnEvaluar.setForeground(Color.WHITE);
+        panelCentro.add(btnEvaluar, BorderLayout.SOUTH);
+
+        JPanel panelSur = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        panelSur.setBorder(BorderFactory.createTitledBorder("Estado del Análisis"));
+        
+        JLabel lblResultado = new JLabel("Esperando expresión...");
+        lblResultado.setFont(new Font("Arial", Font.BOLD, 18));
+        panelSur.add(lblResultado);
+
+        panel.add(panelNorte, BorderLayout.NORTH);
+        panel.add(panelCentro, BorderLayout.CENTER);
+        panel.add(panelSur, BorderLayout.SOUTH);
+
+        final String[] rutaArchivo = {""};
+
+        btnCargar.addActionListener(e -> {
+            File rutaDefecto = new File("tablas_afd");
+            if (!rutaDefecto.exists()) rutaDefecto = new File(System.getProperty("user.dir")); 
+            JFileChooser chooser = new JFileChooser(rutaDefecto.getAbsolutePath());
+            chooser.setDialogTitle("Seleccionar Tabla AFD de Polinomios");
+            
+            if (chooser.showOpenDialog(VentanaPrincipal.this) == JFileChooser.APPROVE_OPTION) {
+                File archivo = chooser.getSelectedFile();
+                rutaArchivo[0] = archivo.getAbsolutePath();
+                lblArchivo.setText("Cargado: " + archivo.getName());
+                lblArchivo.setForeground(new Color(0, 153, 0)); 
+            }
+        });
+
+        btnEvaluar.addActionListener(e -> {
+            if (rutaArchivo[0].isEmpty()) {
+                JOptionPane.showMessageDialog(VentanaPrincipal.this, "Carga el archivo .txt del AFD primero.", "Falta AFD", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (txtExpresion.getText().trim().isEmpty()) {
+                JOptionPane.showMessageDialog(VentanaPrincipal.this, "Ingresa una expresión.", "Campo Vacío", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            try {
+                EvaluadorPolinomios evaluador = new EvaluadorPolinomios(txtExpresion.getText().trim(), rutaArchivo[0]);
+                
+                if (evaluador.iniEval()) { 
+                    lblResultado.setText("✅ SINTAXIS VÁLIDA");
+                    lblResultado.setForeground(new Color(0, 102, 0)); 
+                    JOptionPane.showMessageDialog(VentanaPrincipal.this, "¡La expresión cumple perfectamente con la gramática de polinomios!", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    lblResultado.setText("❌ ERROR DE SINTAXIS");
+                    lblResultado.setForeground(Color.RED); 
+                    JOptionPane.showMessageDialog(VentanaPrincipal.this, "Error: La expresión no respeta la estructura de polinomios.", "Error Sintáctico", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(VentanaPrincipal.this, "Error crítico: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        return panel;
+    }
     // =======================================================
     // PANEL DE EXPRESIÓN REGULAR A AFN
     // =======================================================
