@@ -1,7 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
 package com.mycompany.userafncreator;
 
 /**
@@ -28,6 +25,7 @@ public class Transicion {
     public Transicion(char c1, char c2, Estado sig) {
         this.simbolo1 = c1;
         this.simbolo2 = c2;
+        
         this.edoFinal = sig;
     }
 

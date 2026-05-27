@@ -1,5 +1,5 @@
 package com.mycompany.userafncreator;
-
+//
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Stack;
@@ -43,8 +43,8 @@ public class AFN {
         this.estadosAcept = new HashSet<>();
     }
 
-    // --- MÉTODOS DE THOMPSON (Construcción) ---
-    
+    // --- MÉTODOS DE THOMPSON  ---
+    //bas11ico 1 caracter
     public AFN crearAFNBasico(char c) {
         Estado e1 = new Estado();
         Estado e2 = new Estado();
@@ -65,7 +65,7 @@ public class AFN {
         coleccionAFN.add(this);
         return this;
     }
-
+//basico 2 caracteres
     public AFN crearAFNBasico(char c1, char c2) {
         Estado e1 = new Estado();
         Estado e2 = new Estado();
@@ -82,13 +82,13 @@ public class AFN {
         this.estadosAFN.add(e1);
         this.estadosAFN.add(e2);
         this.estadosAcept.add(e2);
-
+//agregar todo los simbolos del rango al afabeto
         for (char c = c1; c <= c2; c++) {
             this.alfabeto.add(c);
         }
 
         coleccionAFN.add(this);
-        return this;
+        return this; 
     }
 
     public AFN unionAFN(AFN f2) {
@@ -259,7 +259,7 @@ public class AFN {
         return cerraduraEpsilon(mover(A, c));
     }
 
-    public AFD convertirAAFD() {
+public AFD convertirAAFD() {
         HashSet<Subconjunto> R = new HashSet<>();
         Queue<Subconjunto> Q = new LinkedList<>();
         
@@ -267,11 +267,13 @@ public class AFN {
         int numSJ = 0;
         int idEncontrado;
 
+        // Paso 1: Cerradura Epsilon del estado inicial
         C.conjEstados = cerraduraEpsilon(this.estadoInicial);
         C.j = numSJ++;
         R.add(C);
         Q.add(C);
 
+        // Paso 2: Evaluación de subconjuntos
         while (!Q.isEmpty()) {
             C = Q.poll(); 
 
@@ -302,26 +304,42 @@ public class AFN {
 
         AFD afdGenerado = new AFD();
         afdGenerado.numEstados = numSJ;
-        afdGenerado.idAFD = this.idAFN; // Le pasamos el ID del autómata
+        afdGenerado.idAFD = this.idAFN; // Le pasamos el ID del autómata original
 
         // Mapa temporal para guardar qué Token le toca a qué estado del AFD
         HashMap<Integer, Integer> tokensPorEstado = new HashMap<>();
 
+        // Paso 3: Asignación de Tokens y Resolución de Ambigüedades Léxicas
         for (Subconjunto sj : R) {
             afdGenerado.tablaTransiciones.put(sj.j, sj.arregloTrans);
             
-            int tokenAsignado = -1;
+            // Bolsa para recolectar TODOS los tokens que están compitiendo
+            HashSet<Integer> tokensEnConflicto = new HashSet<>();
+            
             for (Estado e : sj.conjEstados) {
                 if (e.edoAccept) {
                     afdGenerado.estadosAceptacion.add(sj.j);
-                    // Si el estado original traía un Token, se lo hereda a este superestado
+                    // Si el estado original traía un Token, lo atrapamos
                     if (e.token != -1) {
-                        tokenAsignado = e.token;
+                        tokensEnConflicto.add(e.token); 
                     }
                 }
             }
-            if(tokenAsignado != -1){
-                tokensPorEstado.put(sj.j, tokenAsignado);
+            
+            // LÓGICA PARA RESOLVER EL EMPALME LÉXICO
+            if (!tokensEnConflicto.isEmpty()) {
+                // Regla de prioridad: El token ganador es el numéricamente menor
+                int tokenFinal = java.util.Collections.min(tokensEnConflicto);
+                
+                // Si la bolsa tiene más de 1 token diferente, ¡HAY UN EMPALME!
+                if (tokensEnConflicto.size() > 1) {
+                    System.out.println("⚠️ ¡AMBIGÜEDAD LÉXICA DETECTADA en el Súper Estado S" + sj.j + "!");
+                    System.out.println("   Tokens compitiendo en el mismo estado: " + tokensEnConflicto);
+                    System.out.println("   -> Resolviendo: Se asignó el Token " + tokenFinal + " por regla de prioridad.\n");
+                }
+                
+                // Asignamos el token ganador a la tabla final
+                tokensPorEstado.put(sj.j, tokenFinal);
             }
         }
 

@@ -1,7 +1,4 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
+
 package com.mycompany.userafncreator;
 import java.util.HashSet;
 
@@ -49,7 +46,7 @@ public class Estado {
         return alcanzables;
     }
     
-    // Agrega esto en Estado.java
+  
 public HashSet<Transicion> getTransiciones() {
     return this.transiciones;
 }
