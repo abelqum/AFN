@@ -108,7 +108,7 @@ public class VentanaPrincipal extends JFrame {
         menuSintactico.add(subMenuDescenso);
         menuSintactico.addSeparator();
         menuSintactico.add(itemLL1);
-        menuSintactico.add(itemLR0);
+        menuSintactico.add(itemLR0);    
 
         // Agregamos los menús a la barra principal
         menuBar.add(menuAFN);
@@ -181,7 +181,7 @@ public class VentanaPrincipal extends JFrame {
         
         itemCalculadora.addActionListener(e -> cardLayout.show(contenedorTarjetas, "Calculadora"));
         itemPolinomios.addActionListener(e -> cardLayout.show(contenedorTarjetas, "Polinomios")); 
-        itemLL1.addActionListener(e -> cardLayout.show(contenedorTarjetas, "LL1"));
+        itemLL1.addActionListener(e -> cardLayout.show(contenedorTarjetas, "LL1")); 
         itemLR0.addActionListener(e -> cardLayout.show(contenedorTarjetas, "LR0"));
         
         itemBorrar.addActionListener(e -> mostrarDialogoBorrar());
@@ -190,210 +190,266 @@ public class VentanaPrincipal extends JFrame {
     // =======================================================
     // NUEVO PANEL: ANÁLISIS LL(1)
     // =======================================================
+ // =======================================================
+    // PANEL: ANÁLISIS LL(1) (CON MATRIZ PREDICTIVA VISIBLE)
+    // =======================================================
+  // =======================================================
+    // PANEL: ANÁLISIS LL(1) 
+    // =======================================================
     private JPanel crearPanelLL1() {
-        JPanel panelPrincipal = new JPanel(new BorderLayout(10, 10));
-        panelPrincipal.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        JPanel panelPrincipal = new JPanel(new BorderLayout(5, 5));
+        panelPrincipal.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Norte: Gramática
-        JPanel panelNorte = new JPanel(new BorderLayout(5, 5));
-        panelNorte.setBorder(BorderFactory.createTitledBorder("1. Definir Gramática (BNF)"));
-        JTextArea txtGramatica = new JTextArea(4, 50);
-        JScrollPane scrollGramatica = new JScrollPane(txtGramatica);
-        JButton btnProcesarGramatica = new JButton("Procesar Gramática LL(1)");
-        btnProcesarGramatica.setBackground(new Color(0, 102, 102));
-        btnProcesarGramatica.setForeground(Color.WHITE);
-        panelNorte.add(scrollGramatica, BorderLayout.CENTER);
-        panelNorte.add(btnProcesarGramatica, BorderLayout.EAST);
-
-        // Centro: Vocabularios
-        JPanel panelCentro = new JPanel(new GridLayout(1, 2, 10, 10));
-        panelCentro.setBorder(BorderFactory.createTitledBorder("2. Vocabularios Extraídos (Asignar Tokens)"));
+        JPanel panelNorteGral = new JPanel(new BorderLayout(5, 5));
         
-        DefaultTableModel modNoTerminales = new DefaultTableModel(new String[]{"No Terminal (Vn)"}, 0) {
+        JPanel panelGramatica = new JPanel(new BorderLayout(5, 5));
+        panelGramatica.setBorder(BorderFactory.createTitledBorder("1. Definir Gramática (BNF)"));
+        JTextArea txtGramatica = new JTextArea(3, 50);
+        JButton btnProcesar = new JButton("Procesar Gramática LL(1)");
+        btnProcesar.setBackground(new Color(0, 102, 102)); btnProcesar.setForeground(Color.WHITE);
+        panelGramatica.add(new JScrollPane(txtGramatica), BorderLayout.CENTER);
+        panelGramatica.add(btnProcesar, BorderLayout.EAST);
+        
+        JPanel panelVocab = new JPanel(new GridLayout(1, 2, 10, 10));
+        panelVocab.setBorder(BorderFactory.createTitledBorder("2. Vocabularios (Asignar Tokens)"));
+        panelVocab.setPreferredSize(new Dimension(900, 120)); 
+        DefaultTableModel modVn = new DefaultTableModel(new String[]{"No Terminal (Vn)"}, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
-        JTable tabNoTerminales = new JTable(modNoTerminales);
-        panelCentro.add(new JScrollPane(tabNoTerminales));
-        
-        DefaultTableModel modTerminales = new DefaultTableModel(new String[]{"Terminal (Vt)", "Token Asociado"}, 0) {
+        DefaultTableModel modVt = new DefaultTableModel(new String[]{"Terminal (Vt)", "Token Asociado"}, 0) {
             @Override public boolean isCellEditable(int r, int c) { return c == 1; }
         };
-        JTable tabTerminales = new JTable(modTerminales);
-        panelCentro.add(new JScrollPane(tabTerminales));
+        JTable tabVt = new JTable(modVt);
+        panelVocab.add(new JScrollPane(new JTable(modVn)));
+        panelVocab.add(new JScrollPane(tabVt));
+        
+        panelNorteGral.add(panelGramatica, BorderLayout.NORTH);
+        panelNorteGral.add(panelVocab, BorderLayout.CENTER);
 
-        // Sur: Análisis de Cadenas
-        JPanel panelSur = new JPanel(new BorderLayout(5, 5));
-        panelSur.setBorder(BorderFactory.createTitledBorder("3. Analizar Cadena LL(1)"));
-        panelSur.setPreferredSize(new Dimension(900, 250));
+        DefaultTableModel modMatrizLL1 = new DefaultTableModel();
+        JTable tabMatrizLL1 = new JTable(modMatrizLL1);
+        tabMatrizLL1.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        JScrollPane scrollMatriz = new JScrollPane(tabMatrizLL1);
+        scrollMatriz.setBorder(BorderFactory.createTitledBorder("3. Matriz Predictiva LL(1)"));
+
+        JPanel panelSimulacion = new JPanel(new BorderLayout(5, 5));
+        panelSimulacion.setBorder(BorderFactory.createTitledBorder("4. Analizar Cadena LL(1)"));
+        panelSimulacion.setPreferredSize(new Dimension(900, 200)); 
         
-        JPanel panelControlesSur = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-        JButton btnCargarAfd = new JButton("Seleccionar AFD Léxico (.txt)");
-        JLabel lblAfdCargado = new JLabel("Ningún AFD seleccionado");
-        final String[] rutaAfdLexico = {""};
-        
-        panelControlesSur.add(btnCargarAfd);
-        panelControlesSur.add(lblAfdCargado);
-        panelControlesSur.add(new JLabel("   Sigma: "));
-        JTextField txtSigma = new JTextField(20);
-        panelControlesSur.add(txtSigma);
+        JPanel pControles = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton btnCargarAfd = new JButton("Seleccionar AFD Léxico");
+        JLabel lblAfd = new JLabel("Ningún AFD");
+        final String[] rutaLexico = {""};
+        JTextField txtSigma = new JTextField(15);
         JButton btnAnalizar = new JButton("Analizar Cadena");
-        panelControlesSur.add(btnAnalizar);
-        
-        panelSur.add(panelControlesSur, BorderLayout.NORTH);
+        pControles.add(btnCargarAfd); pControles.add(lblAfd); pControles.add(new JLabel(" Sigma: ")); pControles.add(txtSigma); pControles.add(btnAnalizar);
         
         DefaultTableModel modPila = new DefaultTableModel(new String[]{"Pila", "Cadena / Token", "Acción"}, 0);
-        JTable tabPila = new JTable(modPila);
-        panelSur.add(new JScrollPane(tabPila), BorderLayout.CENTER);
+        panelSimulacion.add(pControles, BorderLayout.NORTH);
+        panelSimulacion.add(new JScrollPane(new JTable(modPila)), BorderLayout.CENTER);
 
-        panelPrincipal.add(panelNorte, BorderLayout.NORTH);
-        panelPrincipal.add(panelCentro, BorderLayout.CENTER);
-        panelPrincipal.add(panelSur, BorderLayout.SOUTH);
+        panelPrincipal.add(panelNorteGral, BorderLayout.NORTH);
+        panelPrincipal.add(scrollMatriz, BorderLayout.CENTER);
+        panelPrincipal.add(panelSimulacion, BorderLayout.SOUTH);
 
-        // Lógica Botón Procesar
-        btnProcesarGramatica.addActionListener(e -> {
+        // EVENTO PROCESAR GRAMÁTICA LL1
+        btnProcesar.addActionListener(e -> {
             if (txtGramatica.getText().trim().isEmpty()) return;
             JFileChooser chooser = new JFileChooser(new File(System.getProperty("user.dir")));
-            chooser.setDialogTitle("Seleccionar Lexer de Gramáticas (Ej: Tabla_AFD_999.txt)");
             if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                 try {
                     DescRecGram_Gram parser = new DescRecGram_Gram(txtGramatica.getText().trim(), chooser.getSelectedFile().getAbsolutePath());
                     if (parser.G()) {
                         gramaticaActualLL1 = parser.gramaticaResultante;
-                        modNoTerminales.setRowCount(0); modTerminales.setRowCount(0);
-                        for (Simbolo s : gramaticaActualLL1.Vn) modNoTerminales.addRow(new Object[]{s.nombre});
-                        for (Simbolo s : gramaticaActualLL1.Vt) if (!s.nombre.equals(Simbolo.EPSILON)) modTerminales.addRow(new Object[]{s.nombre, ""});
+                        modVn.setRowCount(0); modVt.setRowCount(0);
+                        for (Simbolo s : gramaticaActualLL1.Vn) modVn.addRow(new Object[]{s.nombre});
+                        for (Simbolo s : gramaticaActualLL1.Vt) if (!s.nombre.equals(Simbolo.EPSILON)) modVt.addRow(new Object[]{s.nombre, ""});
                         
                         analizadorLL1 = new AnalizadorLL1(gramaticaActualLL1);
                         analizadorLL1.construirTablaLL1();
-                        JOptionPane.showMessageDialog(this, "Gramática procesada correctamente para LL(1).");
+                        
+                        modMatrizLL1.setColumnCount(0);
+                        modMatrizLL1.addColumn("Vn \\ Vt");
+                        for (Simbolo vt : analizadorLL1.arrVt) modMatrizLL1.addColumn(vt.nombre);
+                        
+                        modMatrizLL1.setRowCount(0);
+                        for (int i = 0; i < analizadorLL1.arrVn.size(); i++) {
+                            Object[] fila = new Object[analizadorLL1.arrVt.size() + 1];
+                            fila[0] = analizadorLL1.arrVn.get(i).nombre;
+                            for (int j = 0; j < analizadorLL1.arrVt.size(); j++) {
+                                int numRegla = analizadorLL1.TablaLL[i][j];
+                                fila[j + 1] = (numRegla != -1) ? gramaticaActualLL1.reglas[numRegla].toString() : "";
+                            }
+                            modMatrizLL1.addRow(fila);
+                        }
+                        JOptionPane.showMessageDialog(this, "Matriz LL(1) generada con éxito.");
                     } else {
-                        JOptionPane.showMessageDialog(this, "Error de Descenso Recursivo. Verifica la sintaxis (No olvides los espacios en tu AFD 999).", "Error", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(this, "Error de Descenso Recursivo. Revisa la sintaxis de la gramática.", "Error", JOptionPane.ERROR_MESSAGE);
                     }
-                } catch (Exception ex) { JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage()); }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Error del sistema: " + ex.getMessage());
+                }
             }
         });
 
-        // Lógica Botones Inferiores LL(1)
         btnCargarAfd.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser(new File(System.getProperty("user.dir")));
             if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                rutaAfdLexico[0] = chooser.getSelectedFile().getAbsolutePath();
-                lblAfdCargado.setText(chooser.getSelectedFile().getName());
+                rutaLexico[0] = chooser.getSelectedFile().getAbsolutePath(); lblAfd.setText(chooser.getSelectedFile().getName());
             }
         });
 
+        // EVENTO ANALIZAR CADENA LL1
         btnAnalizar.addActionListener(e -> {
-            if (gramaticaActualLL1 == null || rutaAfdLexico[0].isEmpty() || txtSigma.getText().isEmpty()) return;
+            if (analizadorLL1 == null || rutaLexico[0].isEmpty()) return;
             java.util.HashMap<Integer, String> mapa = new java.util.HashMap<>();
-            for (int i = 0; i < modTerminales.getRowCount(); i++) {
-                String tkStr = (String) modTerminales.getValueAt(i, 1);
-                if (tkStr != null && !tkStr.isEmpty()) mapa.put(Integer.parseInt(tkStr.trim()), (String) modTerminales.getValueAt(i, 0));
+            for (int i = 0; i < modVt.getRowCount(); i++) {
+                String tkStr = (String) modVt.getValueAt(i, 1);
+                if (tkStr != null && !tkStr.isEmpty()) mapa.put(Integer.parseInt(tkStr.trim()), (String) modVt.getValueAt(i, 0));
             }
-            
             modPila.setRowCount(0);
             try {
-                AnalizadorLexico lex = new AnalizadorLexico(rutaAfdLexico[0]);
-                lex.setSigma(txtSigma.getText().trim());
+                AnalizadorLexico lex = new AnalizadorLexico(rutaLexico[0]); lex.setSigma(txtSigma.getText().trim());
                 java.util.Stack<Simbolo> pila = new java.util.Stack<>();
                 pila.push(new Simbolo("$", true)); pila.push(gramaticaActualLL1.reglas[0].simboloIzquierdo);
                 
-                int tokenActual = lex.yylex();
-                boolean error = false;
+                int token = lex.yylex(); boolean error = false;
                 while (!pila.isEmpty()) {
-                    StringBuilder sb = new StringBuilder();
-                    for (int i = pila.size() - 1; i >= 0; i--) sb.append(pila.get(i).nombre).append(" ");
-                    
+                    StringBuilder sb = new StringBuilder(); for (int i = pila.size() - 1; i >= 0; i--) sb.append(pila.get(i).nombre).append(" ");
                     Simbolo X = pila.peek();
-                    String terminal = (tokenActual == AnalizadorLexico.TOKEN_FIN) ? "$" : mapa.getOrDefault(tokenActual, "");
+                    
+                    
+                    
+                   // ...código anterior...
+String terminal = (token == AnalizadorLexico.TOKEN_FIN) ? "$" : mapa.getOrDefault(token, "");
+
+if (terminal.isEmpty()) {
+    if (token == AnalizadorLexico.TOKEN_ERROR) {
+        // EL DETECTOR LL1
+        modPila.addRow(new Object[]{sb.toString(), "Tk: -1", "Error Léxico AFD 100: Símbolo desconocido -> '" + lex.getLexema() + "'"});
+    } else {
+        modPila.addRow(new Object[]{sb.toString(), "Tk: " + token, "Falta mapear este Token en la Tabla Vt"});
+    }
+    break;
+}
+// ...código siguiente...
                     
                     if (X.esTerminal) {
                         if (X.nombre.equals(terminal)) {
-                            modPila.addRow(new Object[]{sb.toString(), terminal, "POP & MATCH"});
-                            pila.pop();
-                            if (!X.nombre.equals("$")) tokenActual = lex.yylex();
-                        } else {
-                            modPila.addRow(new Object[]{sb.toString(), terminal, "ERROR SINTÁCTICO"}); error = true; break;
-                        }
+                            modPila.addRow(new Object[]{sb.toString(), terminal, "POP & MATCH"}); pila.pop();
+                            if (!X.nombre.equals("$")) token = lex.yylex();
+                        } else { modPila.addRow(new Object[]{sb.toString(), terminal, "ERROR SINTÁCTICO"}); error = true; break; }
                     } else {
-                        int r = analizadorLL1.arrVn.indexOf(X); int c = analizadorLL1.arrVt.indexOf(new Simbolo(terminal, true));
+                        int r = analizadorLL1.arrVn.indexOf(X); 
+                        int c = analizadorLL1.arrVt.indexOf(new Simbolo(terminal, true));
                         int regla = (r != -1 && c != -1) ? analizadorLL1.TablaLL[r][c] : -1;
+                        
+                        // 🔥 1. EL PARCHE MÁGICO PARA EPSILON 🔥
+                        // Si la celda está vacía, buscamos su salvavidas en la columna epsilon
+                        if (regla == -1) {
+                            int colEpsilon = analizadorLL1.arrVt.indexOf(new Simbolo("epsilon", true));
+                            // Por si tu constante se llama distinto:
+                            if (colEpsilon == -1) colEpsilon = analizadorLL1.arrVt.indexOf(new Simbolo(Simbolo.EPSILON, true));
+                            
+                            if (colEpsilon != -1) {
+                                regla = analizadorLL1.TablaLL[r][colEpsilon];
+                            }
+                        }
+
+                        // APLICAMOS LA REGLA ENCONTRADA
                         if (regla != -1) {
                             LadoIzquierdo prod = gramaticaActualLL1.reglas[regla];
-                            modPila.addRow(new Object[]{sb.toString(), terminal, prod.toString()});
+                            modPila.addRow(new Object[]{sb.toString(), terminal, prod.toString()}); 
                             pila.pop();
-                            if (!(prod.listaSimb.size() == 1 && prod.listaSimb.get(0).nombre.equals(Simbolo.EPSILON))) {
-                                for (int i = prod.listaSimb.size() - 1; i >= 0; i--) pila.push(prod.listaSimb.get(i));
+                            
+                            // 🔥 2. EL BLOQUEADOR DE EPSILON 🔥
+                            // Evitamos meter la palabra "epsilon" a la pila
+                            boolean esEpsilon = prod.listaSimb.size() == 1 && 
+                                                (prod.listaSimb.get(0).nombre.equalsIgnoreCase("epsilon") || 
+                                                 prod.listaSimb.get(0).nombre.equals(Simbolo.EPSILON));
+
+                            // Si NO es epsilon, metemos la regla a la pila invertida
+                            if (!esEpsilon) {
+                                for (int i = prod.listaSimb.size() - 1; i >= 0; i--) {
+                                    pila.push(prod.listaSimb.get(i));
+                                }
                             }
-                        } else {
-                            modPila.addRow(new Object[]{sb.toString(), terminal, "ERROR: Celda Vacía"}); error = true; break;
+                        } else { 
+                            modPila.addRow(new Object[]{sb.toString(), terminal, "ERROR: Celda Vacía"}); 
+                            error = true; 
+                            break; 
                         }
+                    
                     }
                 }
                 if (!error) JOptionPane.showMessageDialog(this, "Cadena válida en LL(1).");
-            } catch (Exception ex) { JOptionPane.showMessageDialog(this, "Error en análisis."); }
+            } catch (Exception ex) { ex.printStackTrace(); }
         });
 
         return panelPrincipal;
     }
 
     // =======================================================
-    // NUEVO PANEL: ANÁLISIS LR(0) (MATRIZ DE ACCIÓN Y GOTO)
+    // PANEL: ANÁLISIS LR(0) 
     // =======================================================
-  private JPanel crearPanelLR0() {
-        JPanel panelPrincipal = new JPanel(new BorderLayout(10, 10));
-        panelPrincipal.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+    private JPanel crearPanelLR0() {
+        JPanel panelPrincipal = new JPanel(new BorderLayout(5, 5));
+        panelPrincipal.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // --- NORTE: Gramática y Botón ---
-        JPanel panelNorte = new JPanel(new BorderLayout(5, 5));
-        panelNorte.setBorder(BorderFactory.createTitledBorder("1. Definir Gramática para LR(0)"));
-        JTextArea txtGramatica = new JTextArea(4, 50);
-        JScrollPane scrollGramatica = new JScrollPane(txtGramatica);
-        JButton btnProcesarGramatica = new JButton("Construir Tabla LR(0)");
-        btnProcesarGramatica.setBackground(new Color(153, 0, 0));
-        btnProcesarGramatica.setForeground(Color.WHITE);
-        panelNorte.add(scrollGramatica, BorderLayout.CENTER);
-        panelNorte.add(btnProcesarGramatica, BorderLayout.EAST);
-
-        // --- CENTRO: Tabla LR(0) y Análisis de Cadena ---
-        JPanel panelCentro = new JPanel(new GridLayout(2, 1, 10, 10));
-
-        // Sub-panel Tabla
-        DefaultTableModel modTablaLR0 = new DefaultTableModel();
-        JTable tablaLR0 = new JTable(modTablaLR0);
-        tablaLR0.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        JScrollPane scrollTablaLR0 = new JScrollPane(tablaLR0);
-        scrollTablaLR0.setBorder(BorderFactory.createTitledBorder("2. Tabla de Acción y Goto LR(0)"));
-        panelCentro.add(scrollTablaLR0);
-
-        // Sub-panel Análisis (Igual que LL1)
-        JPanel panelAnalisis = new JPanel(new BorderLayout(5, 5));
-        panelAnalisis.setBorder(BorderFactory.createTitledBorder("3. Analizar Cadena LR(0)"));
+        JPanel panelNorteGral = new JPanel(new BorderLayout(5, 5));
         
-        JPanel panelControlesSur = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        JPanel panelGramatica = new JPanel(new BorderLayout(5, 5));
+        panelGramatica.setBorder(BorderFactory.createTitledBorder("1. Definir Gramática para LR(0)"));
+        JTextArea txtGramatica = new JTextArea(3, 50);
+        JButton btnProcesar = new JButton("Construir Tabla LR(0)");
+        btnProcesar.setBackground(new Color(153, 0, 0)); btnProcesar.setForeground(Color.WHITE);
+        panelGramatica.add(new JScrollPane(txtGramatica), BorderLayout.CENTER);
+        panelGramatica.add(btnProcesar, BorderLayout.EAST);
+        
+        JPanel panelVocab = new JPanel(new GridLayout(1, 2, 10, 10));
+        panelVocab.setBorder(BorderFactory.createTitledBorder("2. Vocabularios (Asignar Tokens)"));
+        panelVocab.setPreferredSize(new Dimension(900, 120)); 
+        DefaultTableModel modVn = new DefaultTableModel(new String[]{"No Terminal (Vn)"}, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+        DefaultTableModel modVt = new DefaultTableModel(new String[]{"Terminal (Vt)", "Token Asociado"}, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return c == 1; }
+        };
+        JTable tabVt = new JTable(modVt);
+        panelVocab.add(new JScrollPane(new JTable(modVn)));
+        panelVocab.add(new JScrollPane(tabVt));
+        
+        panelNorteGral.add(panelGramatica, BorderLayout.NORTH);
+        panelNorteGral.add(panelVocab, BorderLayout.CENTER);
+
+        DefaultTableModel modMatrizLR0 = new DefaultTableModel();
+        JTable tabMatrizLR0 = new JTable(modMatrizLR0);
+        tabMatrizLR0.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        JScrollPane scrollMatriz = new JScrollPane(tabMatrizLR0);
+        scrollMatriz.setBorder(BorderFactory.createTitledBorder("3. Tabla de Acción y Goto LR(0)"));
+
+        JPanel panelSimulacion = new JPanel(new BorderLayout(5, 5));
+        panelSimulacion.setBorder(BorderFactory.createTitledBorder("4. Analizar Cadena LR(0)"));
+        panelSimulacion.setPreferredSize(new Dimension(900, 200)); 
+        
+        JPanel pControles = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JButton btnCargarAfd = new JButton("Seleccionar AFD Léxico (.txt)");
-        JLabel lblAfdCargado = new JLabel("Ningún AFD");
-        final String[] rutaAfdLexico = {""};
+        JLabel lblAfd = new JLabel("Ningún AFD");
+        final String[] rutaLexico = {""};
         JTextField txtSigma = new JTextField(15);
         JButton btnAnalizar = new JButton("Analizar Cadena LR(0)");
+        pControles.add(btnCargarAfd); pControles.add(lblAfd); pControles.add(new JLabel(" Sigma: ")); pControles.add(txtSigma); pControles.add(btnAnalizar);
         
-        panelControlesSur.add(btnCargarAfd);
-        panelControlesSur.add(lblAfdCargado);
-        panelControlesSur.add(new JLabel(" Sigma: "));
-        panelControlesSur.add(txtSigma);
-        panelControlesSur.add(btnAnalizar);
-        
-        DefaultTableModel modPilaLR = new DefaultTableModel(new String[]{"Pila", "Cadena / Token", "Acción"}, 0);
-        JTable tabPilaLR = new JTable(modPilaLR);
-        
-        panelAnalisis.add(panelControlesSur, BorderLayout.NORTH);
-        panelAnalisis.add(new JScrollPane(tabPilaLR), BorderLayout.CENTER);
-        panelCentro.add(panelAnalisis);
+        DefaultTableModel modPilaLR = new DefaultTableModel(new String[]{"Pila (Estado-Símbolo)", "Cadena / Token", "Acción"}, 0);
+        panelSimulacion.add(pControles, BorderLayout.NORTH);
+        panelSimulacion.add(new JScrollPane(new JTable(modPilaLR)), BorderLayout.CENTER);
 
-        panelPrincipal.add(panelNorte, BorderLayout.NORTH);
-        panelPrincipal.add(panelCentro, BorderLayout.CENTER);
+        panelPrincipal.add(panelNorteGral, BorderLayout.NORTH);
+        panelPrincipal.add(scrollMatriz, BorderLayout.CENTER);
+        panelPrincipal.add(panelSimulacion, BorderLayout.SOUTH);
 
-        // --- LÓGICA DE CONSTRUCCIÓN ---
-        btnProcesarGramatica.addActionListener(e -> {
+        // EVENTO CONSTRUIR LR0
+        btnProcesar.addActionListener(e -> {
             if (txtGramatica.getText().trim().isEmpty()) return;
             JFileChooser chooser = new JFileChooser(new File(System.getProperty("user.dir")));
             if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
@@ -401,68 +457,92 @@ public class VentanaPrincipal extends JFrame {
                     DescRecGram_Gram parser = new DescRecGram_Gram(txtGramatica.getText().trim(), chooser.getSelectedFile().getAbsolutePath());
                     if (parser.G()) {
                         gramaticaActualLR0 = parser.gramaticaResultante;
+                        modVn.setRowCount(0); modVt.setRowCount(0);
+                        for (Simbolo s : gramaticaActualLR0.Vn) modVn.addRow(new Object[]{s.nombre});
+                        for (Simbolo s : gramaticaActualLR0.Vt) if (!s.nombre.equals(Simbolo.EPSILON)) modVt.addRow(new Object[]{s.nombre, ""});
+
                         analizadorLR0 = new AnalizadorLR0(gramaticaActualLR0);
                         analizadorLR0.ConstruirColeccionCanonica();
                         analizadorLR0.ConstruirTablaLR0();
                         
-                        // Llenado de tabla
-                        modTablaLR0.setColumnCount(0);
-                        modTablaLR0.addColumn("Estado");
-                        for(Simbolo s : analizadorLR0.arrVt) modTablaLR0.addColumn(s.nombre);
-                        for(Simbolo s : analizadorLR0.arrVn) modTablaLR0.addColumn(s.nombre);
-                        modTablaLR0.setRowCount(0);
+                        modMatrizLR0.setColumnCount(0);
+                        modMatrizLR0.addColumn("Estado");
+                        for(Simbolo s : analizadorLR0.arrVt) modMatrizLR0.addColumn(s.nombre);
+                        for(Simbolo s : analizadorLR0.arrVn) modMatrizLR0.addColumn(s.nombre);
+                        modMatrizLR0.setRowCount(0);
                         for (int i = 0; i < analizadorLR0.TablaAccion.length; i++) {
                             Object[] fila = new Object[1 + analizadorLR0.arrVt.size() + analizadorLR0.arrVn.size()];
                             fila[0] = i; int c = 1;
                             for (int j = 0; j < analizadorLR0.arrVt.size(); j++) fila[c++] = analizadorLR0.TablaAccion[i][j];
                             for (int j = 0; j < analizadorLR0.arrVn.size(); j++) fila[c++] = (analizadorLR0.TablaGoto[i][j] != -1) ? analizadorLR0.TablaGoto[i][j] : "";
-                            modTablaLR0.addRow(fila);
+                            modMatrizLR0.addRow(fila);
                         }
+                        JOptionPane.showMessageDialog(this, "Tabla LR(0) generada con éxito.");
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Error de sintaxis en la gramática.", "Error", JOptionPane.ERROR_MESSAGE);
                     }
-                } catch (Exception ex) { JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage()); }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Error del sistema: " + ex.getMessage());
+                }
             }
         });
 
-        // --- LÓGICA ANÁLISIS CADENA LR(0) ---
         btnCargarAfd.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser(new File(System.getProperty("user.dir")));
             if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                rutaAfdLexico[0] = chooser.getSelectedFile().getAbsolutePath();
-                lblAfdCargado.setText(chooser.getSelectedFile().getName());
+                rutaLexico[0] = chooser.getSelectedFile().getAbsolutePath(); lblAfd.setText(chooser.getSelectedFile().getName());
             }
         });
 
+        // EVENTO ANALIZAR CADENA LR0
         btnAnalizar.addActionListener(e -> {
-            if (analizadorLR0 == null || rutaAfdLexico[0].isEmpty()) return;
+            if (analizadorLR0 == null || rutaLexico[0].isEmpty()) return;
+            java.util.HashMap<Integer, String> mapa = new java.util.HashMap<>();
+            for (int i = 0; i < modVt.getRowCount(); i++) {
+                String tkStr = (String) modVt.getValueAt(i, 1);
+                if (tkStr != null && !tkStr.isEmpty()) mapa.put(Integer.parseInt(tkStr.trim()), (String) modVt.getValueAt(i, 0));
+            }
             modPilaLR.setRowCount(0);
             try {
-                AnalizadorLexico lex = new AnalizadorLexico(rutaAfdLexico[0]);
-                lex.setSigma(txtSigma.getText().trim());
+                AnalizadorLexico lex = new AnalizadorLexico(rutaLexico[0]); lex.setSigma(txtSigma.getText().trim());
                 java.util.Stack<Object> pila = new java.util.Stack<>();
-                pila.push(0); // Estado inicial 0
-                
+                pila.push(0); 
                 int token = lex.yylex();
                 while (true) {
-                    int estadoCima = (int) pila.peek();
-                    String terminal = (token == AnalizadorLexico.TOKEN_FIN) ? "$" : lex.getLexema();
+                    int edo = (int) pila.peek();
+                    
+                    String terminal = (token == AnalizadorLexico.TOKEN_FIN) ? "$" : mapa.getOrDefault(token, "");
+                    
+                    // ...código anterior...
+          
+if (terminal.isEmpty()) {
+    if (token == AnalizadorLexico.TOKEN_ERROR) {
+        // EL DETECTOR LR0
+        modPilaLR.addRow(new Object[]{pila.toString(), "Tk: -1", "Error Léxico AFD 100: Símbolo desconocido -> '" + lex.getLexema() + "'"});
+    } else {
+        modPilaLR.addRow(new Object[]{pila.toString(), "Tk: " + token, "Falta mapear este Token en la Tabla Vt"});
+    }
+    break;
+}
+// ...código siguiente...
+
                     int col = analizadorLR0.arrVt.indexOf(new Simbolo(terminal, true));
+                    if (col == -1) { modPilaLR.addRow(new Object[]{pila.toString(), terminal, "Símbolo no pertenece a la gramática"}); break; }
                     
-                    if (col == -1) { modPilaLR.addRow(new Object[]{pila.toString(), terminal, "Error Token"}); break; }
-                    
-                    String accion = analizadorLR0.TablaAccion[estadoCima][col];
+                    String accion = analizadorLR0.TablaAccion[edo][col];
+                    if (accion == null || accion.isEmpty()) { modPilaLR.addRow(new Object[]{pila.toString(), terminal, "Error de Sintaxis (Celda vacía)"}); break; }
                     modPilaLR.addRow(new Object[]{pila.toString(), terminal, accion});
                     
-                    if (accion.startsWith("D")) { // Desplazar
-                        pila.push(terminal);
-                        pila.push(Integer.parseInt(accion.substring(1)));
-                        token = lex.yylex();
-                    } else if (accion.startsWith("R")) { // Reducir
+                    if (accion.startsWith("D")) { 
+                        pila.push(terminal); pila.push(Integer.parseInt(accion.substring(1))); token = lex.yylex();
+                    } else if (accion.startsWith("R")) { 
                         int numRegla = Integer.parseInt(accion.substring(1));
-                        int tamRegla = gramaticaActualLR0.reglas[numRegla].listaSimb.size() * 2;
-                        for(int k=0; k<tamRegla; k++) pila.pop();
-                        int estadoGoto = analizadorLR0.TablaGoto[(int)pila.peek()][analizadorLR0.arrVn.indexOf(gramaticaActualLR0.reglas[numRegla].simboloIzquierdo)];
-                        pila.push(gramaticaActualLR0.reglas[numRegla].simboloIzquierdo.nombre);
-                        pila.push(estadoGoto);
+                        LadoIzquierdo regla = gramaticaActualLR0.reglas[numRegla];
+                        if (!(regla.listaSimb.size() == 1 && regla.listaSimb.get(0).nombre.equals(Simbolo.EPSILON))) {
+                            for(int k=0; k<regla.listaSimb.size()*2; k++) pila.pop();
+                        }
+                        int gotoEdo = analizadorLR0.TablaGoto[(int)pila.peek()][analizadorLR0.arrVn.indexOf(regla.simboloIzquierdo)];
+                        pila.push(regla.simboloIzquierdo.nombre); pila.push(gotoEdo);
                     } else if (accion.equals("ACEPT")) {
                         JOptionPane.showMessageDialog(this, "¡Cadena Aceptada por LR(0)!"); break;
                     } else { break; }
@@ -471,8 +551,6 @@ public class VentanaPrincipal extends JFrame {
         });
         return panelPrincipal;
     }
-
-    // =======================================================
     // PANELES ORIGINALES (NO SE MODIFICÓ NINGÚN DISEÑO AQUÍ)
     // =======================================================
     private JPanel crearPanelBienvenida() {
