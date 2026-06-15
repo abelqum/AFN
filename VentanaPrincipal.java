@@ -253,45 +253,43 @@ public class VentanaPrincipal extends JFrame {
         panelPrincipal.add(panelSimulacion, BorderLayout.SOUTH);
 
         // EVENTO PROCESAR GRAMÁTICA LL1
+       // EVENTO PROCESAR GRAMÁTICA LL1 (Automático)
         btnProcesar.addActionListener(e -> {
             if (txtGramatica.getText().trim().isEmpty()) return;
-            JFileChooser chooser = new JFileChooser(new File(System.getProperty("user.dir")));
-            if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                try {
-                    DescRecGram_Gram parser = new DescRecGram_Gram(txtGramatica.getText().trim(), chooser.getSelectedFile().getAbsolutePath());
-                    if (parser.G()) {
-                        gramaticaActualLL1 = parser.gramaticaResultante;
-                        modVn.setRowCount(0); modVt.setRowCount(0);
-                        for (Simbolo s : gramaticaActualLL1.Vn) modVn.addRow(new Object[]{s.nombre});
-                        for (Simbolo s : gramaticaActualLL1.Vt) if (!s.nombre.equals(Simbolo.EPSILON)) modVt.addRow(new Object[]{s.nombre, ""});
-                        
-                        analizadorLL1 = new AnalizadorLL1(gramaticaActualLL1);
-                        analizadorLL1.construirTablaLL1();
-                        
-                        modMatrizLL1.setColumnCount(0);
-                        modMatrizLL1.addColumn("Vn \\ Vt");
-                        for (Simbolo vt : analizadorLL1.arrVt) modMatrizLL1.addColumn(vt.nombre);
-                        
-                        modMatrizLL1.setRowCount(0);
-                        for (int i = 0; i < analizadorLL1.arrVn.size(); i++) {
-                            Object[] fila = new Object[analizadorLL1.arrVt.size() + 1];
-                            fila[0] = analizadorLL1.arrVn.get(i).nombre;
-                            for (int j = 0; j < analizadorLL1.arrVt.size(); j++) {
-                                int numRegla = analizadorLL1.TablaLL[i][j];
-                                fila[j + 1] = (numRegla != -1) ? gramaticaActualLL1.reglas[numRegla].toString() : "";
-                            }
-                            modMatrizLL1.addRow(fila);
+            try {
+                // Instanciamos directo sin pedir archivo!
+                DescRecGram_Gram parser = new DescRecGram_Gram(txtGramatica.getText().trim());
+                if (parser.G()) {
+                    gramaticaActualLL1 = parser.gramaticaResultante;
+                    modVn.setRowCount(0); modVt.setRowCount(0);
+                    for (Simbolo s : gramaticaActualLL1.Vn) modVn.addRow(new Object[]{s.nombre});
+                    for (Simbolo s : gramaticaActualLL1.Vt) if (!s.nombre.equals(Simbolo.EPSILON)) modVt.addRow(new Object[]{s.nombre, ""});
+                    
+                    analizadorLL1 = new AnalizadorLL1(gramaticaActualLL1);
+                    analizadorLL1.construirTablaLL1();
+                    
+                    modMatrizLL1.setColumnCount(0);
+                    modMatrizLL1.addColumn("Vn \\ Vt");
+                    for (Simbolo vt : analizadorLL1.arrVt) modMatrizLL1.addColumn(vt.nombre);
+                    
+                    modMatrizLL1.setRowCount(0);
+                    for (int i = 0; i < analizadorLL1.arrVn.size(); i++) {
+                        Object[] fila = new Object[analizadorLL1.arrVt.size() + 1];
+                        fila[0] = analizadorLL1.arrVn.get(i).nombre;
+                        for (int j = 0; j < analizadorLL1.arrVt.size(); j++) {
+                            int numRegla = analizadorLL1.TablaLL[i][j];
+                            fila[j + 1] = (numRegla != -1) ? gramaticaActualLL1.reglas[numRegla].toString() : "";
                         }
-                        JOptionPane.showMessageDialog(this, "Matriz LL(1) generada con éxito.");
-                    } else {
-                        JOptionPane.showMessageDialog(this, "Error de Descenso Recursivo. Revisa la sintaxis de la gramática.", "Error", JOptionPane.ERROR_MESSAGE);
+                        modMatrizLL1.addRow(fila);
                     }
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Error del sistema: " + ex.getMessage());
+                    JOptionPane.showMessageDialog(this, "Matriz LL(1) generada al instante.");
+                } else {
+                    JOptionPane.showMessageDialog(this, "Error de sintaxis en la gramática.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
             }
         });
-
         btnCargarAfd.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser(new File(System.getProperty("user.dir")));
             if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
@@ -449,41 +447,40 @@ if (terminal.isEmpty()) {
         panelPrincipal.add(panelSimulacion, BorderLayout.SOUTH);
 
         // EVENTO CONSTRUIR LR0
+       // EVENTO CONSTRUIR LR0 (Automático)
         btnProcesar.addActionListener(e -> {
             if (txtGramatica.getText().trim().isEmpty()) return;
-            JFileChooser chooser = new JFileChooser(new File(System.getProperty("user.dir")));
-            if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                try {
-                    DescRecGram_Gram parser = new DescRecGram_Gram(txtGramatica.getText().trim(), chooser.getSelectedFile().getAbsolutePath());
-                    if (parser.G()) {
-                        gramaticaActualLR0 = parser.gramaticaResultante;
-                        modVn.setRowCount(0); modVt.setRowCount(0);
-                        for (Simbolo s : gramaticaActualLR0.Vn) modVn.addRow(new Object[]{s.nombre});
-                        for (Simbolo s : gramaticaActualLR0.Vt) if (!s.nombre.equals(Simbolo.EPSILON)) modVt.addRow(new Object[]{s.nombre, ""});
+            try {
+                // Instanciamos directo sin pedir archivo!
+                DescRecGram_Gram parser = new DescRecGram_Gram(txtGramatica.getText().trim());
+                if (parser.G()) {
+                    gramaticaActualLR0 = parser.gramaticaResultante;
+                    modVn.setRowCount(0); modVt.setRowCount(0);
+                    for (Simbolo s : gramaticaActualLR0.Vn) modVn.addRow(new Object[]{s.nombre});
+                    for (Simbolo s : gramaticaActualLR0.Vt) if (!s.nombre.equals(Simbolo.EPSILON)) modVt.addRow(new Object[]{s.nombre, ""});
 
-                        analizadorLR0 = new AnalizadorLR0(gramaticaActualLR0);
-                        analizadorLR0.ConstruirColeccionCanonica();
-                        analizadorLR0.ConstruirTablaLR0();
-                        
-                        modMatrizLR0.setColumnCount(0);
-                        modMatrizLR0.addColumn("Estado");
-                        for(Simbolo s : analizadorLR0.arrVt) modMatrizLR0.addColumn(s.nombre);
-                        for(Simbolo s : analizadorLR0.arrVn) modMatrizLR0.addColumn(s.nombre);
-                        modMatrizLR0.setRowCount(0);
-                        for (int i = 0; i < analizadorLR0.TablaAccion.length; i++) {
-                            Object[] fila = new Object[1 + analizadorLR0.arrVt.size() + analizadorLR0.arrVn.size()];
-                            fila[0] = i; int c = 1;
-                            for (int j = 0; j < analizadorLR0.arrVt.size(); j++) fila[c++] = analizadorLR0.TablaAccion[i][j];
-                            for (int j = 0; j < analizadorLR0.arrVn.size(); j++) fila[c++] = (analizadorLR0.TablaGoto[i][j] != -1) ? analizadorLR0.TablaGoto[i][j] : "";
-                            modMatrizLR0.addRow(fila);
-                        }
-                        JOptionPane.showMessageDialog(this, "Tabla LR(0) generada con éxito.");
-                    } else {
-                        JOptionPane.showMessageDialog(this, "Error de sintaxis en la gramática.", "Error", JOptionPane.ERROR_MESSAGE);
+                    analizadorLR0 = new AnalizadorLR0(gramaticaActualLR0);
+                    analizadorLR0.ConstruirColeccionCanonica();
+                    analizadorLR0.ConstruirTablaLR0();
+                    
+                    modMatrizLR0.setColumnCount(0);
+                    modMatrizLR0.addColumn("Estado");
+                    for(Simbolo s : analizadorLR0.arrVt) modMatrizLR0.addColumn(s.nombre);
+                    for(Simbolo s : analizadorLR0.arrVn) modMatrizLR0.addColumn(s.nombre);
+                    modMatrizLR0.setRowCount(0);
+                    for (int i = 0; i < analizadorLR0.TablaAccion.length; i++) {
+                        Object[] fila = new Object[1 + analizadorLR0.arrVt.size() + analizadorLR0.arrVn.size()];
+                        fila[0] = i; int c = 1;
+                        for (int j = 0; j < analizadorLR0.arrVt.size(); j++) fila[c++] = analizadorLR0.TablaAccion[i][j];
+                        for (int j = 0; j < analizadorLR0.arrVn.size(); j++) fila[c++] = (analizadorLR0.TablaGoto[i][j] != -1) ? analizadorLR0.TablaGoto[i][j] : "";
+                        modMatrizLR0.addRow(fila);
                     }
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Error del sistema: " + ex.getMessage());
+                    JOptionPane.showMessageDialog(this, "Tabla LR(0) generada al instante.");
+                } else {
+                    JOptionPane.showMessageDialog(this, "Error de sintaxis en la gramática.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
             }
         });
 
@@ -531,8 +528,17 @@ if (terminal.isEmpty()) {
                     
                     String accion = analizadorLR0.TablaAccion[edo][col];
                     if (accion == null || accion.isEmpty()) { modPilaLR.addRow(new Object[]{pila.toString(), terminal, "Error de Sintaxis (Celda vacía)"}); break; }
+                    
+                    // 1. Mostramos la acción tal cual en la tabla visual (Para que el profe vea el conflicto)
                     modPilaLR.addRow(new Object[]{pila.toString(), terminal, accion});
                     
+                    // 🔥 2. RESOLUCIÓN DE CONFLICTOS YACC/BISON 🔥
+                    // Si la celda tiene un conflicto (ej. "D12 / R6"), nos quedamos con la primera orden (El Desplazamiento)
+                    if (accion.contains("/")) {
+                        accion = accion.split("/")[0].trim();
+                    }
+                    
+                    // 3. Ejecutamos la acción ya limpia
                     if (accion.startsWith("D")) { 
                         pila.push(terminal); pila.push(Integer.parseInt(accion.substring(1))); token = lex.yylex();
                     } else if (accion.startsWith("R")) { 

@@ -5,27 +5,64 @@ import java.util.ArrayList;
 public class DescRecGram_Gram {
     
     public String cadenaGramatica;
-    public AnalizadorLexico L; 
     public Gramatica gramaticaResultante;
 
-    public DescRecGram_Gram(String sigma, String archivoAFD) {
+    // --- MINI-LEXER NATIVO (Adiós Tabla 999) ---
+    private String[] tokensNativos;
+    private int indiceActual;
+    private String lexemaActual;
+
+    // Ya no pedimos archivoAFD, solo la cadena
+    public DescRecGram_Gram(String sigma) {
         this.cadenaGramatica = sigma;
-        this.L = new AnalizadorLexico(archivoAFD);
-        this.L.setSigma(sigma);
+        
+        // Cortamos por espacios en blanco (¡La magia del Lexer Nativo!)
+        // Si la cadena está vacía, evitamos arreglos basura
+        if (sigma.trim().isEmpty()) {
+            this.tokensNativos = new String[0];
+        } else {
+            this.tokensNativos = sigma.trim().split("\\s+");
+        }
+        
+        this.indiceActual = 0;
+        this.lexemaActual = "";
         
         this.gramaticaResultante = new Gramatica(100);
         this.gramaticaResultante.numReglas = 0;
     }
 
     // =========================================================
-    // LA CURA CONTRA LOS ESPACIOS (Filtro Léxico)
+    // MÉTODOS DEL MINI-LEXER
     // =========================================================
+    private void undoToken() {
+        if (indiceActual > 0) indiceActual--;
+    }
+
+    private String getLexema() {
+        return lexemaActual;
+    }
+
     private int pedirToken() {
-        int token;
-        do {
-            token = L.yylex();
-        } while (token == 20001); // Ignorar espacios, saltos de línea y tabuladores
-        return token;
+        // 🔥 CORRECCIÓN CLAVE AQUÍ PARA EL FIN DE ARCHIVO 🔥
+        if (indiceActual >= tokensNativos.length) {
+            lexemaActual = "";
+            indiceActual++; // Truco vital: avanzar en el abismo para que el undoToken regrese aquí y no al último ';'
+            return AnalizadorLexico.TOKEN_FIN; // 0
+        }
+        
+        lexemaActual = tokensNativos[indiceActual++];
+        
+        if (lexemaActual.equals("->")) return TokensGramatica.FLECHA; // 10
+        if (lexemaActual.equals(";")) return TokensGramatica.PC;     // 20
+        if (lexemaActual.equals("|")) return TokensGramatica.OR;     // 30
+        
+        // Estandarizar epsilon para que no haya confusiones visuales en la tabla
+        if (lexemaActual.equalsIgnoreCase("epsilon") || lexemaActual.equals("ε")) {
+            lexemaActual = Simbolo.EPSILON;
+        }
+        
+        // Si no es ninguno de los anteriores, ¡ES UN SÍMBOLO UNIVERSAL!
+        return TokensGramatica.SIMBOLO; // 40
     }
 
     // =========================================================
@@ -46,13 +83,13 @@ public class DescRecGram_Gram {
         if (Regla()) {
             int token = pedirToken();
             if (token == TokensGramatica.SIMBOLO) {
-                L.undoToken(); // Viene otra regla
+                undoToken(); // Viene otra regla
                 if (ListaReglas()) {
                     return true;
                 }
                 return false;
             }
-            L.undoToken(); // Ya no hay reglas
+            undoToken(); // Ya no hay reglas
             return true;
         }
         return false;
@@ -62,7 +99,7 @@ public class DescRecGram_Gram {
     private boolean Regla() {
         int token = pedirToken();
         if (token == TokensGramatica.SIMBOLO) {
-            String lexemaJefe = L.getLexema();
+            String lexemaJefe = getLexema();
             Simbolo s = new Simbolo(lexemaJefe, false); 
             
             // Evitamos duplicados en la lista de No Terminales
@@ -104,7 +141,7 @@ public class DescRecGram_Gram {
             }
             return false;
         }
-        L.undoToken(); // Transición Epsilon
+        undoToken(); // Transición Epsilon
         return true;
     }
 
@@ -126,7 +163,7 @@ public class DescRecGram_Gram {
     private boolean ListaSimbolos(ArrayList<Simbolo> l) {
         int Token = pedirToken();
         if (Token == TokensGramatica.SIMBOLO) {
-            String lexema = L.getLexema();
+            String lexema = getLexema();
             
             // Si empieza con minúscula o no es letra, es Terminal
             boolean esTerminal = Character.isLowerCase(lexema.charAt(0)) || !Character.isLetter(lexema.charAt(0));
@@ -145,13 +182,6 @@ public class DescRecGram_Gram {
             }
         }
         
-        // Manejo de Epsilon
-        if (L.getLexema().equalsIgnoreCase("epsilon") || L.getLexema().equalsIgnoreCase("ε")) {
-             Simbolo S = new Simbolo(Simbolo.EPSILON, true);
-             l.add(0, S);
-             return true;
-        }
-
         return false;
     }
 
@@ -159,10 +189,10 @@ public class DescRecGram_Gram {
     private boolean ListaSimbolosP(ArrayList<Simbolo> l) {
         int Token = pedirToken();
         if (Token == TokensGramatica.SIMBOLO) {
-            L.undoToken(); 
+            undoToken(); 
             return ListaSimbolos(l);
         }
-        L.undoToken(); // Epsilon
+        undoToken(); // Epsilon
         return true;
     }
 }

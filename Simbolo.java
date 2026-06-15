@@ -1,4 +1,4 @@
-package com.mycompany.userafncreator;
+    package com.mycompany.userafncreator;
 
 import java.util.Objects;
 
