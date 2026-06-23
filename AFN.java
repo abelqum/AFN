@@ -393,7 +393,7 @@ public AFD convertirAAFD() {
         String rutaDot = "dots/" + nombreArchivo + ".dot";
         String rutaPng = "imagenes/" + nombreArchivo + ".png";
 
-       // ... (dentro de generarGrafico, donde empieza el StringBuilder) ...
+       // ... (dentro de generarGrafico, donde empieza el StringBuilder)
     StringBuilder dot = new StringBuilder();
     dot.append("digraph AFN {\n");
     dot.append("  charset=\"UTF-8\";\n"); // <-- LÍNEA NUEVA: Le avisa a Graphviz
