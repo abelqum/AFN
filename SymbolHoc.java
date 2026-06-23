@@ -34,4 +34,9 @@ public class SymbolHoc {
         TipoSymbol = TipSimbolo;
         FuncPredef = func;
     }
+    
+    @Override
+    public String toString() {
+        return name.isEmpty() ? String.valueOf(val) : name;
+    }
 }

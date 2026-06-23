@@ -11,10 +11,16 @@ public class MaquinaHoc4 {
     public int progp;
     public int pc;
     public Stack<Datum> stack;
-    
+    public float ax; // Registro auxiliar para el switch
     public JTextArea AreaResult;
     public JTable jTablePila;
-
+// Clase interna para guardar el contexto de las funciones (HOC 6)
+    public class Frame {
+        public int retpc;
+        public java.util.ArrayList<Datum> args;
+        public Frame(int retpc) { this.retpc = retpc; this.args = new java.util.ArrayList<>(); }
+    }
+    public Stack<Frame> callStack = new Stack<>();
     public MaquinaHoc4() {
         TabSimb = new TablaSimbolos();
         TabSimb.init();
@@ -127,6 +133,24 @@ public class MaquinaHoc4 {
                     case JUMP_FALSE:
                         jump_false();
                         break;
+                        // ... (debajo de case JUMP_FALSE: jump_false(); break;)
+                    case GT: gt(); break;
+                    case LT: lt(); break;
+                    case EQ: eq(); break;
+                    case GE: ge(); break;
+                    case LE: le(); break;
+                    case NE: ne(); break;
+                    case AND: and(); break;
+                    case OR: or(); break;
+                    case NOT: not(); break;
+                    case SET_AX: set_ax(); break;
+                    case PUSH_AX: push_ax(); break;
+                    case POP: stack.pop(); break;
+                    case CALL: call(); break;
+                    case RET: ret(); break;
+                    case PROCRET: procret(); break;
+                    case ARGPUSH: argpush(); break;
+                    case ARGASSIGN: argassign(); break;
                     case STOP:
                         return;
                 }
@@ -138,30 +162,50 @@ public class MaquinaHoc4 {
 
     /* --- OPERACIONES DE LA ALU Y PILA --- */
 
-    private void varpush() {
-        push(new Datum(Prog[pc].symb));
-        pc++;
+   private void constpush() {
+        Datum d = new Datum();
+        d.val = Prog[pc].symb.val; // Extraemos el valor real de la instrucción
+        pc++; // Saltamos a la siguiente instrucción
+        push(d);
     }
 
-    private void constpush() {
-        push(new Datum(Prog[pc].symb.val));
-        pc++;
+    private void varpush() {
+        Datum d = new Datum();
+        d.symb = Prog[pc].symb; // Guardamos la referencia de la variable
+        pc++; // Saltamos a la siguiente instrucción
+        push(d);
     }
 
     private void eval() {
         Datum d = pop();
-        if (d.symb != null) {
-            if (d.symb.TipoSymbol == EnumTipoSymbol.UNDEF) {
-                if (AreaResult != null) AreaResult.append("Error: variable indefinida " + d.symb.name + "\n");
-                push(new Datum(0.0f));
-            } else {
-                push(new Datum(d.symb.val));
+        if (d.symb.TipoSymbol == EnumTipoSymbol.UNDEF) {
+            if (AreaResult != null) {
+                AreaResult.append("❌ Error: variable indefinida '" + d.symb.name + "'\n");
             }
-        } else {
-            push(d);
         }
+        Datum dNuevo = new Datum();
+        dNuevo.val = d.symb.val; // Pasamos su valor a la pila para hacer matemáticas
+        push(dNuevo);
     }
 
+    private void assign() {
+        Datum dVar = pop(); // Primero sale la variable (ej. x)
+        Datum dVal = pop(); // Luego sale el valor (ej. 7.5)
+        
+        dVar.symb.val = dVal.val; // Le inyectamos el valor
+        
+        // ¡ESTA LÍNEA ES LA CLAVE! Le quitamos lo "indefinida"
+        dVar.symb.TipoSymbol = EnumTipoSymbol.VAR; 
+        
+        push(dVal); // Volvemos a meter el valor por si hay asignaciones en cadena (y = z = x)
+    }
+
+    private void print() {
+        Datum d = pop(); // Sacamos el resultado final de la expresión
+        if (AreaResult != null) {
+            AreaResult.append(">> RESULTADO: " + d.val + "\n");
+        }
+    }
     private void add() {
         Datum d2 = pop();
         Datum d1 = pop();
@@ -199,28 +243,7 @@ public class MaquinaHoc4 {
         }
     }
 
-    private void assign() {
-        Datum d2 = pop(); // El valor
-        Datum d1 = pop(); // El símbolo (variable)
-        if (d1.symb != null) {
-            float val = (d2.symb != null) ? d2.symb.val : d2.val;
-            d1.symb.val = val;
-            if (d1.symb.TipoSymbol == EnumTipoSymbol.UNDEF) {
-                d1.symb.TipoSymbol = EnumTipoSymbol.VAR;
-            }
-            push(new Datum(val)); // Deja el resultado en la pila
-        }
-    }
 
-    private void print() {
-        Datum d = pop();
-        float val = (d.symb != null) ? d.symb.val : d.val;
-        if (AreaResult != null) {
-            AreaResult.append("" + val + "\n");
-        } else {
-            System.out.println("" + val);
-        }
-    }
 
     private void bltin() {
         EnumBLTIN tipo = Prog[pc].bltin;
@@ -267,5 +290,116 @@ public class MaquinaHoc4 {
         } else {
             pc++;
         }
+    }
+
+    /* --- OPERACIONES LÓGICAS Y DE SWITCH (HOC 5) --- */
+    private void set_ax() {
+        Datum d = pop();
+        this.ax = (d.symb != null) ? d.symb.val : d.val;
+    }
+
+    private void push_ax() {
+        push(new Datum(this.ax));
+    }
+
+    private void gt() {
+        Datum d2 = pop(); Datum d1 = pop();
+        float v1 = (d1.symb != null) ? d1.symb.val : d1.val;
+        float v2 = (d2.symb != null) ? d2.symb.val : d2.val;
+        push(new Datum(v1 > v2 ? 1.0f : 0.0f));
+    }
+
+    private void lt() {
+        Datum d2 = pop(); Datum d1 = pop();
+        float v1 = (d1.symb != null) ? d1.symb.val : d1.val;
+        float v2 = (d2.symb != null) ? d2.symb.val : d2.val;
+        push(new Datum(v1 < v2 ? 1.0f : 0.0f));
+    }
+
+    private void eq() {
+        Datum d2 = pop(); Datum d1 = pop();
+        float v1 = (d1.symb != null) ? d1.symb.val : d1.val;
+        float v2 = (d2.symb != null) ? d2.symb.val : d2.val;
+        push(new Datum(v1 == v2 ? 1.0f : 0.0f));
+    }
+
+    private void ge() {
+        Datum d2 = pop(); Datum d1 = pop();
+        float v1 = (d1.symb != null) ? d1.symb.val : d1.val;
+        float v2 = (d2.symb != null) ? d2.symb.val : d2.val;
+        push(new Datum(v1 >= v2 ? 1.0f : 0.0f));
+    }
+
+    private void le() {
+        Datum d2 = pop(); Datum d1 = pop();
+        float v1 = (d1.symb != null) ? d1.symb.val : d1.val;
+        float v2 = (d2.symb != null) ? d2.symb.val : d2.val;
+        push(new Datum(v1 <= v2 ? 1.0f : 0.0f));
+    }
+
+    private void ne() {
+        Datum d2 = pop(); Datum d1 = pop();
+        float v1 = (d1.symb != null) ? d1.symb.val : d1.val;
+        float v2 = (d2.symb != null) ? d2.symb.val : d2.val;
+        push(new Datum(v1 != v2 ? 1.0f : 0.0f));
+    }
+
+    private void and() {
+        Datum d2 = pop(); Datum d1 = pop();
+        float v1 = (d1.symb != null) ? d1.symb.val : d1.val;
+        float v2 = (d2.symb != null) ? d2.symb.val : d2.val;
+        push(new Datum((v1 != 0 && v2 != 0) ? 1.0f : 0.0f));
+    }
+
+    private void or() {
+        Datum d2 = pop(); Datum d1 = pop();
+        float v1 = (d1.symb != null) ? d1.symb.val : d1.val;
+        float v2 = (d2.symb != null) ? d2.symb.val : d2.val;
+        push(new Datum((v1 != 0 || v2 != 0) ? 1.0f : 0.0f));
+    }
+
+    private void not() {
+        Datum d = pop();
+        float v = (d.symb != null) ? d.symb.val : d.val;
+        push(new Datum(v == 0 ? 1.0f : 0.0f));
+    }
+    
+    /* --- CONTROL DE FUNCIONES HOC 6 --- */
+    private void call() {
+        SymbolHoc f = Prog[pc].symb; pc++; // Saca el símbolo de la función
+        int numArgs = Prog[pc].jump; pc++; // Saca la cantidad de argumentos
+        Frame frame = new Frame(pc); // Guarda la línea a la que debe regresar
+        
+        // Saca los argumentos de la pila y los guarda en el Frame (al revés por ser pila)
+        Datum[] argsTemporales = new Datum[numArgs];
+        for(int i = numArgs - 1; i >= 0; i--) argsTemporales[i] = pop();
+        for(Datum d : argsTemporales) frame.args.add(d);
+        
+        callStack.push(frame); // Se mete a la función
+        pc = (int) f.val; // Salta a la línea de código donde empieza la función
+    }
+
+    private void ret() {
+        Frame frame = callStack.pop();
+        pc = frame.retpc; // Regresa de la función, el valor de retorno ya está en la pila (Datum)
+    }
+
+    private void procret() {
+        Frame frame = callStack.pop();
+        pc = frame.retpc;
+    }
+
+    private void argpush() {
+        int argIndex = Prog[pc].jump; pc++; // Es el número del argumento (ej. el 1 del $1)
+        Frame frame = callStack.peek();
+        push(new Datum(frame.args.get(argIndex - 1).val));
+    }
+
+    private void argassign() {
+        int argIndex = Prog[pc].jump; pc++; // Es el número del argumento
+        Datum dVal = pop(); // Saca el valor a asignar
+        Frame frame = callStack.peek();
+        frame.args.get(argIndex - 1).val = dVal.val; // Asigna directo (ej. $1 = 1)
+        push(dVal);
     }
 }

@@ -70,7 +70,15 @@ public class VentanaPrincipal extends JFrame {
         
         JMenuItem itemBorrar = new JMenuItem("Borrar AFN...");
         itemBorrar.setForeground(Color.RED);
+// --- 3. MENÚ PRINCIPAL: MÁQUINA VIRTUAL HOC ---
+        JMenu menuHoc = new JMenu("Máquina HOC");
+        JMenuItem itemPruebasHoc = new JMenuItem("Pruebas HOC (3, 5 y 6)");
+        itemPruebasHoc.setForeground(new Color(0, 153, 0)); // Color verde pro
+        menuHoc.add(itemPruebasHoc);
+        menuBar.add(menuHoc);
 
+        // Agregarlo a los eventos (Cerca de la línea 130)
+        itemPruebasHoc.addActionListener(e -> cardLayout.show(contenedorTarjetas, "PanelHOC"));
         menuAFN.add(itemBasicoUn);
         menuAFN.add(itemBasicoRango);
         menuAFN.addSeparator();
@@ -157,7 +165,7 @@ public class VentanaPrincipal extends JFrame {
         // PANELES NUEVOS LL1 Y LR0
         contenedorTarjetas.add(crearPanelLL1(), "LL1");
         contenedorTarjetas.add(crearPanelLR0(), "LR0");
-
+contenedorTarjetas.add(crearPanelHocGlobal(), "PanelHOC");
         // Agregamos el contenedor al centro de la ventana
         add(contenedorTarjetas, BorderLayout.CENTER);
 
@@ -906,5 +914,153 @@ if (terminal.isEmpty()) {
             ImageIcon icono = new ImageIcon(rutaAbsoluta); icono.getImage().flush(); JLabel lblImagen = new JLabel(icono);
             visor.add(new JScrollPane(lblImagen)); visor.setAlwaysOnTop(true); visor.setVisible(true);
         }
+    }
+
+
+    // =======================================================
+    // PANEL GLOBAL HOC (CON SUB-PESTAÑAS PARA 3, 5 Y 6)
+    // =======================================================
+    private JPanel crearPanelHocGlobal() {
+        JPanel panelPrincipal = new JPanel(new BorderLayout());
+        JTabbedPane pestanasHoc = new JTabbedPane();
+
+        pestanasHoc.addTab("HOC 3 (Calculadora)", crearPestanaHoc(3));
+        pestanasHoc.addTab("HOC 5 (Control de Flujo)", crearPestanaHoc(5));
+        pestanasHoc.addTab("HOC 6 (Funciones)", crearPestanaHoc(6));
+
+        panelPrincipal.add(pestanasHoc, BorderLayout.CENTER);
+        return panelPrincipal;
+    }
+
+    private JPanel crearPestanaHoc(int nivelHoc) {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // --- BARRA DE HERRAMIENTAS (BOTONES) ---
+        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton btnLexico = new JButton("Analizador Léxico");
+        JButton btnSintactico = new JButton("Analizador Sintáctico (Ejecutar)");
+        JButton btnVerCodigo = new JButton("Ver Código (Generado)");
+        JButton btnLimpiar = new JButton("Limpiar");
+        
+        btnSintactico.setBackground(new Color(0, 102, 153));
+        btnSintactico.setForeground(java.awt.Color.WHITE);
+
+        panelBotones.add(btnLexico);
+        panelBotones.add(btnSintactico);
+        panelBotones.add(btnVerCodigo);
+        panelBotones.add(btnLimpiar);
+
+        // --- ÁREA IZQUIERDA: ENTRADA DE CÓDIGO ---
+        JTextArea txtEntrada = new JTextArea();
+        txtEntrada.setFont(new java.awt.Font("Monospaced", java.awt.Font.BOLD, 16));
+        JScrollPane scrollEntrada = new JScrollPane(txtEntrada);
+        scrollEntrada.setBorder(BorderFactory.createTitledBorder("Código Fuente"));
+
+        // --- ÁREA DERECHA: SALIDA DE CONSOLA ---
+        JTextArea txtSalida = new JTextArea();
+        txtSalida.setFont(new java.awt.Font("Monospaced", java.awt.Font.PLAIN, 14));
+        txtSalida.setEditable(false);
+        txtSalida.setBackground(new java.awt.Color(40, 44, 52)); // Color tipo terminal
+        txtSalida.setForeground(new java.awt.Color(171, 178, 191));
+        JScrollPane scrollSalida = new JScrollPane(txtSalida);
+        scrollSalida.setBorder(BorderFactory.createTitledBorder("Salida / Consola"));
+
+        // Dividir la pantalla a la mitad
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollEntrada, scrollSalida);
+        splitPane.setDividerLocation(450);
+
+        panel.add(panelBotones, BorderLayout.NORTH);
+        panel.add(splitPane, BorderLayout.CENTER);
+
+        // --- LA MÁQUINA VIRTUAL COMPARTIDA PARA ESTA PESTAÑA ---
+        MaquinaHoc4 maquinaVirtual = new MaquinaHoc4(txtSalida, null);
+
+        // --- EVENTO: LIMPIAR ---
+        btnLimpiar.addActionListener(e -> {
+            txtEntrada.setText("");
+            txtSalida.setText("");
+            maquinaVirtual.initcode();
+            maquinaVirtual.TabSimb.init(); // Reinicia variables
+        });
+
+        // --- EVENTO: ANALIZADOR SINTÁCTICO (COMPILAR Y EJECUTAR) ---
+        btnSintactico.addActionListener(e -> {
+            txtSalida.setText("--- COMPILANDO HOC " + nivelHoc + " ---\n");
+            maquinaVirtual.initcode(); // Limpia la memoria RAM de la máquina
+            String codigo = txtEntrada.getText();
+            if (codigo.trim().isEmpty()) return;
+
+            java.io.StringReader reader = new java.io.StringReader(codigo);
+            try {
+                if (nivelHoc == 3) {
+                    LexicoHoc3 lexico = new LexicoHoc3(reader, maquinaVirtual);
+                    SintacHoc3 parser = new SintacHoc3(lexico, maquinaVirtual);
+                    parser.parse();
+                } else if (nivelHoc == 5) {
+                    LexicoHoc5 lexico = new LexicoHoc5(reader, maquinaVirtual);
+                    SintacHoc5 parser = new SintacHoc5(lexico, maquinaVirtual);
+                    parser.parse();
+                } else if (nivelHoc == 6) {
+                    LexicoHoc6 lexico = new LexicoHoc6(reader, maquinaVirtual);
+                    SintacHoc6 parser = new SintacHoc6(lexico, maquinaVirtual);
+                    parser.parse();
+                }
+                txtSalida.append("\n>> Ejecución finalizada correctamente.\n");
+            } catch (Exception ex) {
+                txtSalida.append("\n❌ Error durante el análisis: " + ex.getMessage() + "\n");
+            }
+        });
+
+        // --- EVENTO: VER CÓDIGO (MOSTRAR BYTECODE) ---
+        btnVerCodigo.addActionListener(e -> {
+            txtSalida.setText("--- MEMORIA DE LA MÁQUINA (BYTECODE) ---\n");
+            for (int i = 0; i < maquinaVirtual.progp; i++) {
+                InstrucPrograma ip = maquinaVirtual.Prog[i];
+                if (ip == null) break;
+                
+                String linea = String.format("[%03d]\t", i);
+                
+                if (ip.TipoInstr == EnumTipoInstr.INSTRUC) {
+                    linea += ip.Instruc.name();
+                } else if (ip.TipoInstr == EnumTipoInstr.SYMBOL) {
+                    linea += "SÍMBOLO: " + (ip.symb.name.isEmpty() ? ip.symb.val : ip.symb.name);
+                } else if (ip.TipoInstr == EnumTipoInstr.BLTIN) {
+                    linea += "BLTIN: " + ip.bltin.name();
+                } else if (ip.TipoInstr == EnumTipoInstr.DIRECC) {
+                    linea += "SALTO A -> [" + String.format("%03d", ip.jump) + "]";
+                }
+                txtSalida.append(linea + "\n");
+            }
+            txtSalida.append("----------------------------------------\n");
+        });
+
+        // --- EVENTO: ANALIZADOR LÉXICO (SOLO ESCANEO) ---
+        btnLexico.addActionListener(e -> {
+            txtSalida.setText("--- TOKENS LÉXICOS HOC " + nivelHoc + " ---\n");
+            String codigo = txtEntrada.getText();
+            if (codigo.trim().isEmpty()) return;
+            java.io.StringReader reader = new java.io.StringReader(codigo);
+            try {
+                java_cup.runtime.Symbol token;
+                if (nivelHoc == 3) {
+                    LexicoHoc3 lex = new LexicoHoc3(reader, maquinaVirtual);
+                    while ((token = lex.next_token()).sym != SintacHoc3Sym.EOF) 
+                        txtSalida.append("Token ID: " + token.sym + " | Valor: " + token.value + "\n");
+                } else if (nivelHoc == 5) {
+                    LexicoHoc5 lex = new LexicoHoc5(reader, maquinaVirtual);
+                    while ((token = lex.next_token()).sym != SintacHoc5Sym.EOF) 
+                        txtSalida.append("Token ID: " + token.sym + " | Valor: " + token.value + "\n");
+                } else if (nivelHoc == 6) {
+                    LexicoHoc6 lex = new LexicoHoc6(reader, maquinaVirtual);
+                    while ((token = lex.next_token()).sym != SintacHoc6Sym.EOF) 
+                        txtSalida.append("Token ID: " + token.sym + " | Valor: " + token.value + "\n");
+                }
+            } catch (Exception ex) {
+                txtSalida.append("\n❌ Error Léxico: " + ex.getMessage());
+            }
+        });
+
+        return panel;
     }
 }

@@ -1,13 +1,12 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.mycompany.userafncreator;
 
-/**
- *
- * @author abelq
- */
 public class InstrucPrograma {
-    
+    public EnumTipoInstr TipoInstr;
+    public EnumInstrMaq Instruc;
+    public SymbolHoc symb;
+    public EnumBLTIN bltin;
+    public int jump;
+
+    public InstrucPrograma() {
+    }
 }

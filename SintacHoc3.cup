@@ -1,0 +1,86 @@
+package com.mycompany.userafncreator;
+
+import java_cup.runtime.*;
+
+parser code {:
+    public MaquinaHoc4 maq;
+    public int inicioStmt = 0;
+
+    public SintacHoc3(java_cup.runtime.Scanner s, MaquinaHoc4 maq) {
+        super(s);
+        this.maq = maq;
+    }
+
+    public void report_error(String message, Object info) {
+        if (maq.AreaResult != null) {
+            maq.AreaResult.append("Error Sintáctico: " + message + "\n");
+        }
+    }
+:};
+
+terminal ASSIGN, ADD, SUB, MUL, DIV, LPAREN, RPAREN, SEMIC;
+terminal Float NUM;
+terminal SymbolHoc VAR, BLTIN, CONST_PREDEF;
+
+non terminal list, stmt, expr;
+
+precedence right ASSIGN;
+precedence left ADD, SUB;
+precedence left MUL, DIV;
+
+start with list;
+
+list ::= 
+      list stmt
+    | /* vacio */
+    ;
+
+stmt ::=
+      expr SEMIC {: 
+          maq.code(EnumInstrMaq.PRINT); 
+          maq.code(EnumInstrMaq.STOP); 
+          maq.execute(inicioStmt); // HOC 3 ejecuta línea por línea
+          inicioStmt = maq.progp;
+      :}
+    | VAR:v ASSIGN expr SEMIC {: 
+          maq.code(EnumInstrMaq.ASSIGN); 
+          maq.code(EnumInstrMaq.STOP); 
+          maq.execute(inicioStmt);
+          inicioStmt = maq.progp;
+      :}
+    | error SEMIC {: 
+          maq.initcode(); // Limpia la memoria en caso de error para no trabarse
+          inicioStmt = maq.progp;
+      :}
+    ;
+
+expr ::=
+      NUM:n {: 
+          SymbolHoc s = maq.TabSimb.install("", EnumTipoSymbol.CONST_PREDEF, n);
+          maq.code(EnumInstrMaq.CONSTPUSH);
+          maq.code(s);
+      :}
+    | VAR:v {: 
+          maq.code(EnumInstrMaq.VARPUSH);
+          maq.code(v);
+          maq.code(EnumInstrMaq.EVAL);
+      :}
+    | CONST_PREDEF:c {:
+          maq.code(EnumInstrMaq.CONSTPUSH);
+          maq.code(c);
+      :}
+    | VAR:v ASSIGN expr {:
+          maq.code(EnumInstrMaq.VARPUSH);
+          maq.code(v);
+          maq.code(EnumInstrMaq.ASSIGN);
+      :}
+    | BLTIN:f LPAREN expr RPAREN {:
+          maq.code(EnumInstrMaq.BLTIN);
+          maq.code(f.FuncPredef); /* Toma la función del enum */
+      :}
+    | expr ADD expr {: maq.code(EnumInstrMaq.ADD); :}
+    | expr SUB expr {: maq.code(EnumInstrMaq.SUB); :}
+    | expr MUL expr {: maq.code(EnumInstrMaq.MUL); :}
+    | expr DIV expr {: maq.code(EnumInstrMaq.DIV); :}
+    | LPAREN expr RPAREN
+    ;

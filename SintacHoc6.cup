@@ -1,0 +1,173 @@
+package com.mycompany.userafncreator;
+
+import java_cup.runtime.*;
+import java.util.Stack;
+import java.util.ArrayList;
+
+parser code {:
+    public MaquinaHoc4 maq;
+    public int inicioStmt = 0;
+    // Pila para ir guardando los "hoyos" de memoria de los breaks
+    public Stack<ArrayList<Integer>> breakStack = new Stack<>();
+
+    public SintacHoc6(java_cup.runtime.Scanner s, MaquinaHoc4 maq) {
+        super(s);
+        this.maq = maq;
+    }
+
+    public void report_error(String message, Object info) {
+        if (maq.AreaResult != null) maq.AreaResult.append("Error Sintáctico: " + message + "\n");
+    }
+:};
+
+terminal ASSIGN, ADD, SUB, MUL, DIV, LPAREN, RPAREN, LBRACE, RBRACE, SEMIC, COLON;
+terminal EQ, NE, GT, LT, GE, LE, AND, OR, NOT, UNARYMINUS;
+terminal IF, ELSE, WHILE, FOR, SWITCH, CASE, DEFAULT, PRINT, BREAK;
+terminal PROC, FUNC, RETURN;
+terminal Integer ARG;
+terminal Float NUM;
+terminal SymbolHoc VAR, BLTIN, CONST_PREDEF;
+
+non terminal list, stmt, stmtlist, defn, caselist, case_stmt;
+non terminal Integer cond, if_prefix, while_start, case_prefix, switch_start, for_init;
+non terminal int[] for_cond, for_inc;
+non terminal Integer arglist;
+non terminal expr;
+
+precedence right ASSIGN;
+precedence left OR;
+precedence left AND;
+precedence left EQ, NE;
+precedence left GT, LT, GE, LE;
+precedence left ADD, SUB;
+precedence left MUL, DIV;
+precedence right UNARYMINUS;
+precedence right NOT;
+
+start with list;
+
+/* AQUI ESTA LA MAGIA: Le avisamos al puntero que se salte las funciones para que no explote */
+list ::= 
+      list defn {: inicioStmt = maq.progp; :}
+    | list stmt {: 
+          maq.code(EnumInstrMaq.STOP); 
+          maq.execute(inicioStmt); 
+          inicioStmt = maq.progp; 
+      :}
+    | /* vacio */
+    ;
+
+defn ::=
+      FUNC VAR:v {: 
+          v.TipoSymbol = EnumTipoSymbol.FUNC; 
+          v.val = maq.progp; 
+      :} LPAREN RPAREN stmt {: maq.code(EnumInstrMaq.RET); :}
+    | PROC VAR:v {: 
+          v.TipoSymbol = EnumTipoSymbol.PROC; 
+          v.val = maq.progp;
+      :} LPAREN RPAREN stmt {: maq.code(EnumInstrMaq.PROCRET); :}
+    ;
+
+stmt ::=
+      expr SEMIC {: maq.code(EnumInstrMaq.POP); :}
+    | PRINT expr SEMIC {: maq.code(EnumInstrMaq.PRINT); :}
+    | RETURN expr SEMIC {: maq.code(EnumInstrMaq.RET); :}
+    | RETURN SEMIC {: maq.code(EnumInstrMaq.PROCRET); :}
+    | BREAK SEMIC {: 
+          maq.code(EnumInstrMaq.JUMP); 
+          int hole = maq.progp; maq.code(0); 
+          breakStack.peek().add(hole); 
+      :}
+    | LBRACE stmtlist RBRACE
+    | IF LPAREN cond:c RPAREN stmt {: maq.Prog[c].jump = maq.progp; :}
+    | if_prefix:p stmt {: maq.Prog[p].jump = maq.progp; :}
+    | while_start:ws cond:c RPAREN stmt {: 
+          maq.code(EnumInstrMaq.JUMP); maq.code(ws);
+          maq.Prog[c].jump = maq.progp;
+          for(int hole : breakStack.pop()) maq.Prog[hole].jump = maq.progp;
+      :}
+    | for_inc:fi stmt {:
+          maq.code(EnumInstrMaq.JUMP); maq.code(fi[2]); 
+          maq.Prog[fi[1]].jump = maq.progp; 
+          for(int hole : breakStack.pop()) maq.Prog[hole].jump = maq.progp;
+      :}
+    | switch_start caselist RBRACE {:
+          for(int hole : breakStack.pop()) maq.Prog[hole].jump = maq.progp;
+      :}
+    ;
+
+for_init ::= FOR LPAREN expr SEMIC {: maq.code(EnumInstrMaq.POP); RESULT = maq.progp; :};
+for_cond ::= for_init:cs cond:c SEMIC {: 
+    maq.code(EnumInstrMaq.JUMP); int j1 = maq.progp; maq.code(0);
+    RESULT = new int[]{cs, c, maq.progp, j1}; 
+:};
+for_inc ::= for_cond:fc expr RPAREN {:
+    maq.code(EnumInstrMaq.POP);
+    maq.code(EnumInstrMaq.JUMP); maq.code(fc[0]); 
+    maq.Prog[fc[3]].jump = maq.progp;
+    breakStack.push(new ArrayList<Integer>());
+    RESULT = fc;
+:};
+
+while_start ::= WHILE LPAREN {: breakStack.push(new ArrayList<Integer>()); RESULT = maq.progp; :};
+
+switch_start ::= SWITCH LPAREN expr RPAREN LBRACE {: 
+    maq.code(EnumInstrMaq.SET_AX); 
+    breakStack.push(new ArrayList<Integer>());
+    RESULT = 0; 
+:};
+
+if_prefix ::=
+      IF LPAREN cond:c RPAREN stmt ELSE {:
+          maq.code(EnumInstrMaq.JUMP); int j = maq.progp; maq.code(0);
+          maq.Prog[c].jump = maq.progp; RESULT = j;
+      :}
+    ;
+
+cond ::= expr {: maq.code(EnumInstrMaq.JUMP_FALSE); RESULT = maq.progp; maq.code(0); :};
+
+caselist ::= case_stmt caselist | /* vacio */ ;
+
+case_prefix ::= CASE expr COLON {:
+          maq.code(EnumInstrMaq.PUSH_AX); maq.code(EnumInstrMaq.EQ); maq.code(EnumInstrMaq.JUMP_FALSE);
+          RESULT = maq.progp; maq.code(0);
+:};
+
+case_stmt ::=
+      case_prefix:cp stmtlist {: maq.Prog[cp].jump = maq.progp; :}
+    | DEFAULT COLON stmtlist
+    ;
+
+stmtlist ::= stmtlist stmt | /* vacio */ ;
+
+expr ::=
+      NUM:n {: SymbolHoc s = maq.TabSimb.install("", EnumTipoSymbol.CONST_PREDEF, n); maq.code(EnumInstrMaq.CONSTPUSH); maq.code(s); :}
+    | VAR:v {: maq.code(EnumInstrMaq.VARPUSH); maq.code(v); maq.code(EnumInstrMaq.EVAL); :}
+    | CONST_PREDEF:c {: maq.code(EnumInstrMaq.CONSTPUSH); maq.code(c); :}
+    | BLTIN:f LPAREN expr RPAREN {: maq.code(EnumInstrMaq.BLTIN); maq.code(f.FuncPredef); :}
+    | ARG:a {: maq.code(EnumInstrMaq.ARGPUSH); maq.code(a); :}
+    | VAR:v ASSIGN expr {: maq.code(EnumInstrMaq.VARPUSH); maq.code(v); maq.code(EnumInstrMaq.ASSIGN); :}
+    | ARG:a ASSIGN expr {: maq.code(EnumInstrMaq.ARGASSIGN); maq.code(a); :}
+    | VAR:v LPAREN arglist:n RPAREN {: maq.code(EnumInstrMaq.CALL); maq.code(v); maq.code(n); :}
+    | expr ADD expr {: maq.code(EnumInstrMaq.ADD); :}
+    | expr SUB expr {: maq.code(EnumInstrMaq.SUB); :}
+    | expr MUL expr {: maq.code(EnumInstrMaq.MUL); :}
+    | expr DIV expr {: maq.code(EnumInstrMaq.DIV); :}
+    | SUB expr {: maq.code(EnumInstrMaq.CONSTPUSH); maq.code(new SymbolHoc("", EnumTipoSymbol.CONST_PREDEF, -1.0f)); maq.code(EnumInstrMaq.MUL); :} %prec UNARYMINUS
+    | expr EQ expr {: maq.code(EnumInstrMaq.EQ); :}
+    | expr NE expr {: maq.code(EnumInstrMaq.NE); :}
+    | expr GT expr {: maq.code(EnumInstrMaq.GT); :}
+    | expr LT expr {: maq.code(EnumInstrMaq.LT); :}
+    | expr GE expr {: maq.code(EnumInstrMaq.GE); :}
+    | expr LE expr {: maq.code(EnumInstrMaq.LE); :}
+    | expr AND expr {: maq.code(EnumInstrMaq.AND); :}
+    | expr OR expr {: maq.code(EnumInstrMaq.OR); :}
+    | NOT expr {: maq.code(EnumInstrMaq.NOT); :}
+    | LPAREN expr RPAREN
+    ;
+
+arglist ::= 
+      expr {: RESULT = 1; :}
+    | arglist:n expr {: RESULT = n + 1; :}
+    | /* vacio */ {: RESULT = 0; :}
+    ;
